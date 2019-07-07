@@ -3,16 +3,16 @@ package org.horaapps.leafpic.data
 import androidx.room.*
 
 @Dao
-interface AlbumDao {
+abstract class AlbumDao : BaseDao() {
     @Query("SELECT * FROM albums WHERE status = :status")
-    fun getAlbumsWithStatus(status: Int): List<AlbumK>
+    abstract suspend fun getAlbumsWithStatus(status: Int): List<AlbumK>
 
-    @Query("SELECT * FROM albums WHERE path = :path LIMIT 1")
-    fun ifExists(path: String): AlbumK?
+    @Query("SELECT EXISTS(SELECT 1 FROM albums WHERE path = :path LIMIT 1)")
+    abstract suspend fun ifExists(path: String): AlbumK?
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
-    fun updateAlbum(album: AlbumK)
+    abstract suspend fun updateAlbum(album: AlbumK)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAlbum(album: AlbumK)
+    abstract suspend fun insertAlbum(album: AlbumK)
 }
