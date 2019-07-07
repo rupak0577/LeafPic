@@ -9,6 +9,8 @@ import com.mikepenz.iconics.Iconics;
 import com.orhanobut.hawk.Hawk;
 import com.squareup.leakcanary.LeakCanary;
 
+import org.horaapps.leafpic.di.AppComponent;
+import org.horaapps.leafpic.di.DaggerAppComponent;
 import org.horaapps.leafpic.util.ApplicationUtils;
 import org.horaapps.leafpic.util.preferences.Prefs;
 
@@ -18,11 +20,13 @@ import org.horaapps.leafpic.util.preferences.Prefs;
 public class App extends MultiDexApplication {
 
     private static App mInstance;
+    private static AppComponent appComponent;
 
     @Override
     public void onCreate() {
         super.onCreate();
         mInstance = this;
+        appComponent = DaggerAppComponent.builder().application(this).build();
 
         ApplicationUtils.init(this);
 
@@ -39,6 +43,10 @@ public class App extends MultiDexApplication {
 
     public static App getInstance() {
         return mInstance;
+    }
+
+    public static AppComponent getAppComponent() {
+        return appComponent;
     }
 
     private void registerFontIcons() {

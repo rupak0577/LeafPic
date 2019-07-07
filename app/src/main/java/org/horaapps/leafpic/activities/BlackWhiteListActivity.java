@@ -22,9 +22,8 @@ import com.mikepenz.google_material_typeface_library.GoogleMaterial;
 import org.horaapps.leafpic.R;
 import org.horaapps.leafpic.SelectAlbumBuilder;
 import org.horaapps.leafpic.activities.base.SharedMediaActivity;
-import org.horaapps.leafpic.data.AlbumRepository;
-import org.horaapps.leafpic.data.AppDatabase;
 import org.horaapps.leafpic.data.filter.ImageFileFilter;
+import org.horaapps.leafpic.di.Injector;
 import org.horaapps.leafpic.util.AnimationUtils;
 import org.horaapps.leafpic.util.StringUtils;
 import org.horaapps.leafpic.util.preferences.Prefs;
@@ -63,8 +62,7 @@ public class BlackWhiteListActivity extends SharedMediaActivity {
 
     private void loadFolders(int type) {
         typeExcluded = type == EXCLUDED;
-        folders = new ArrayList<>(AlbumRepository.Companion.getInstance(AppDatabase.Companion
-                .getInstance(getApplicationContext()).albumDao()).getFolders(type));
+        folders = new ArrayList<>(Injector.Companion.get().albumRepository().getFolders(type));
         checkNothing();
         if (isExcludedMode()) setTitle(getString(R.string.excluded_items));
         else setTitle(getString(R.string.white_list));

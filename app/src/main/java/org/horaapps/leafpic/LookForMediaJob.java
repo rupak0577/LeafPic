@@ -10,10 +10,9 @@ import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import android.util.Log;
 
-import org.horaapps.leafpic.data.AlbumRepository;
-import org.horaapps.leafpic.data.AppDatabase;
 import org.horaapps.leafpic.data.MediaHelper;
 import org.horaapps.leafpic.data.filter.ImageFileFilter;
+import org.horaapps.leafpic.di.Injector;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -43,8 +42,8 @@ public class LookForMediaJob extends JobService {
             @Override
             public void run() {
                 try {
-                    ArrayList<String> whiteList = new ArrayList<>(AlbumRepository.Companion.getInstance(AppDatabase.Companion
-                            .getInstance(getApplicationContext()).albumDao()).getFolders(INCLUDED));
+                    ArrayList<String> whiteList = new ArrayList<>(Injector.Companion.get()
+                            .albumRepository().getFolders(INCLUDED));
                     for (String s : whiteList) {
                         scanFolder(s);
                         Log.wtf(TAG, "Scanned: " + s);

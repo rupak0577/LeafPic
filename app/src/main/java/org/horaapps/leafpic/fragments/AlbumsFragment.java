@@ -31,12 +31,12 @@ import org.horaapps.leafpic.adapters.AlbumsAdapter;
 import org.horaapps.leafpic.data.Album;
 import org.horaapps.leafpic.data.AlbumRepository;
 import org.horaapps.leafpic.data.AlbumsHelper;
-import org.horaapps.leafpic.data.AppDatabase;
 import org.horaapps.leafpic.data.MediaHelper;
 import org.horaapps.leafpic.data.StorageHelper;
 import org.horaapps.leafpic.data.provider.CPHelper;
 import org.horaapps.leafpic.data.sort.SortingMode;
 import org.horaapps.leafpic.data.sort.SortingOrder;
+import org.horaapps.leafpic.di.Injector;
 import org.horaapps.leafpic.progress.ProgressBottomSheet;
 import org.horaapps.leafpic.util.AlertDialogsHelper;
 import org.horaapps.leafpic.util.AnimationUtils;
@@ -214,8 +214,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
     }
 
     private AlbumRepository db() {
-        return AlbumRepository.Companion.getInstance(AppDatabase.Companion
-                .getInstance(getContext().getApplicationContext()).albumDao());
+        return Injector.Companion.get().albumRepository();
     }
 
     @Override

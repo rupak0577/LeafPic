@@ -4,8 +4,9 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
 import org.horaapps.leafpic.EXCLUDED
 import java.util.*
+import javax.inject.Inject
 
-class AlbumRepository private constructor(private val albumDao: AlbumDao) {
+class AlbumRepository @Inject constructor(private val albumDao: AlbumDao) {
 
     /**
      *
@@ -32,17 +33,5 @@ class AlbumRepository private constructor(private val albumDao: AlbumDao) {
         withContext(IO) {
             albumDao.updateAlbum(album)
         }
-    }
-
-    companion object {
-
-        // For Singleton instantiation
-        @Volatile
-        private var instance: AlbumRepository? = null
-
-        fun getInstance(albumDao: AlbumDao) =
-                instance ?: synchronized(this) {
-                    instance ?: AlbumRepository(albumDao).also { instance = it }
-                }
     }
 }

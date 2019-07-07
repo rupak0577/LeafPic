@@ -39,7 +39,6 @@ import org.horaapps.leafpic.activities.PaletteActivity;
 import org.horaapps.leafpic.adapters.MediaAdapter;
 import org.horaapps.leafpic.data.Album;
 import org.horaapps.leafpic.data.AlbumRepository;
-import org.horaapps.leafpic.data.AppDatabase;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.data.MediaHelper;
 import org.horaapps.leafpic.data.filter.FilterMode;
@@ -47,6 +46,7 @@ import org.horaapps.leafpic.data.filter.MediaFilter;
 import org.horaapps.leafpic.data.provider.CPHelper;
 import org.horaapps.leafpic.data.sort.SortingMode;
 import org.horaapps.leafpic.data.sort.SortingOrder;
+import org.horaapps.leafpic.di.Injector;
 import org.horaapps.leafpic.interfaces.MediaClickListener;
 import org.horaapps.leafpic.progress.ProgressBottomSheet;
 import org.horaapps.leafpic.util.Affix;
@@ -239,8 +239,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     }
 
     private AlbumRepository db() {
-        return AlbumRepository.Companion.getInstance(AppDatabase.Companion
-                .getInstance(getContext().getApplicationContext()).albumDao());
+        return Injector.Companion.get().albumRepository();
     }
 
 
