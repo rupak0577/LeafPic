@@ -1,6 +1,6 @@
 package org.horaapps.leafpic.activities.base;
 
-import android.support.annotation.CallSuper;
+import androidx.annotation.CallSuper;
 
 import org.horaapps.liz.ThemedActivity;
 

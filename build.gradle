@@ -22,7 +22,7 @@ buildscript {
 
 project.ext {
     supportVersion = "27.1.1"
-    sdkVersion = 27
+    sdkVersion = 28
 }
 
 allprojects {
