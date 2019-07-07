@@ -22,7 +22,8 @@ import com.mikepenz.google_material_typeface_library.GoogleMaterial;
 import org.horaapps.leafpic.R;
 import org.horaapps.leafpic.SelectAlbumBuilder;
 import org.horaapps.leafpic.activities.base.SharedMediaActivity;
-import org.horaapps.leafpic.data.HandlingAlbums;
+import org.horaapps.leafpic.data.AlbumRepository;
+import org.horaapps.leafpic.data.AppDatabase;
 import org.horaapps.leafpic.data.filter.ImageFileFilter;
 import org.horaapps.leafpic.util.AnimationUtils;
 import org.horaapps.leafpic.util.StringUtils;
@@ -34,6 +35,8 @@ import java.util.ArrayList;
 
 import jp.wasabeef.recyclerview.animators.LandingAnimator;
 
+import static org.horaapps.leafpic.ConstantsKt.EXCLUDED;
+import static org.horaapps.leafpic.ConstantsKt.INCLUDED;
 import static org.horaapps.leafpic.data.MediaHelper.scanFile;
 
 /**
@@ -55,12 +58,13 @@ public class BlackWhiteListActivity extends SharedMediaActivity {
         toolbar = findViewById(R.id.toolbar);
         mRecyclerView = findViewById(R.id.excluded_albums);
         initUi();
-        loadFolders(getIntent().getIntExtra(EXTRA_TYPE, HandlingAlbums.EXCLUDED));
+        loadFolders(getIntent().getIntExtra(EXTRA_TYPE, EXCLUDED));
     }
 
     private void loadFolders(int type) {
-        typeExcluded = type == HandlingAlbums.EXCLUDED;
-        folders = HandlingAlbums.getInstance(getApplicationContext()).getFolders(type);
+        typeExcluded = type == EXCLUDED;
+        folders = new ArrayList<>(AlbumRepository.Companion.getInstance(AppDatabase.Companion
+                .getInstance(getApplicationContext()).albumDao()).getFolders(type));
         checkNothing();
         if (isExcludedMode()) setTitle(getString(R.string.excluded_items));
         else setTitle(getString(R.string.white_list));
@@ -140,7 +144,7 @@ public class BlackWhiteListActivity extends SharedMediaActivity {
                         .onFolderSelected(path -> addFolder(new File(path))).show();
                 return true;
             case R.id.action_toggle:
-                loadFolders(isExcludedMode() ? HandlingAlbums.INCLUDED : HandlingAlbums.EXCLUDED);
+                loadFolders(isExcludedMode() ? INCLUDED : EXCLUDED);
                 return true;
         }
         return super.onOptionsItemSelected(item);

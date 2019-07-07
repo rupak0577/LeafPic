@@ -10,12 +10,15 @@ import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import android.util.Log;
 
-import org.horaapps.leafpic.data.HandlingAlbums;
+import org.horaapps.leafpic.data.AlbumRepository;
+import org.horaapps.leafpic.data.AppDatabase;
 import org.horaapps.leafpic.data.MediaHelper;
 import org.horaapps.leafpic.data.filter.ImageFileFilter;
 
 import java.io.File;
 import java.util.ArrayList;
+
+import static org.horaapps.leafpic.ConstantsKt.INCLUDED;
 
 /**
  * Created by dnld on 11/29/16.
@@ -40,7 +43,8 @@ public class LookForMediaJob extends JobService {
             @Override
             public void run() {
                 try {
-                    ArrayList<String> whiteList = HandlingAlbums.getInstance(getApplicationContext()).getFolders(HandlingAlbums.INCLUDED);
+                    ArrayList<String> whiteList = new ArrayList<>(AlbumRepository.Companion.getInstance(AppDatabase.Companion
+                            .getInstance(getApplicationContext()).albumDao()).getFolders(INCLUDED));
                     for (String s : whiteList) {
                         scanFolder(s);
                         Log.wtf(TAG, "Scanned: " + s);

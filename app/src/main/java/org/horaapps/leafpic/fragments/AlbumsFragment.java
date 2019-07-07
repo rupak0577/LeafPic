@@ -3,7 +3,6 @@ package org.horaapps.leafpic.fragments;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.Configuration;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
@@ -30,9 +29,11 @@ import com.orhanobut.hawk.Hawk;
 import org.horaapps.leafpic.R;
 import org.horaapps.leafpic.adapters.AlbumsAdapter;
 import org.horaapps.leafpic.data.Album;
+import org.horaapps.leafpic.data.AlbumRepository;
 import org.horaapps.leafpic.data.AlbumsHelper;
-import org.horaapps.leafpic.data.HandlingAlbums;
+import org.horaapps.leafpic.data.AppDatabase;
 import org.horaapps.leafpic.data.MediaHelper;
+import org.horaapps.leafpic.data.StorageHelper;
 import org.horaapps.leafpic.data.provider.CPHelper;
 import org.horaapps.leafpic.data.sort.SortingMode;
 import org.horaapps.leafpic.data.sort.SortingOrder;
@@ -47,7 +48,9 @@ import org.horaapps.leafpic.views.GridSpacingItemDecoration;
 import org.horaapps.liz.ThemeHelper;
 import org.horaapps.liz.ThemedActivity;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import butterknife.BindView;
@@ -64,8 +67,10 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
     public static final String TAG = "AlbumsFragment";
 
-    @BindView(R.id.albums) RecyclerView rv;
-    @BindView(R.id.swipe_refresh) SwipeRefreshLayout refresh;
+    @BindView(R.id.albums)
+    RecyclerView rv;
+    @BindView(R.id.swipe_refresh)
+    SwipeRefreshLayout refresh;
 
     private AlbumsAdapter adapter;
     private GridSpacingItemDecoration spacingDecoration;
@@ -82,7 +87,11 @@ public class AlbumsFragment extends BaseMediaGridFragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        excuded = db().getExcludedFolders(getContext());
+        excuded = new ArrayList<>(db().getExcludedFolders());
+        HashSet<File> storageRoots = StorageHelper.getStorageRoots(getContext());
+        for (File file : storageRoots)
+            // it has a lot of garbage
+            excuded.add(new File(file.getPath(), "Android").getPath());
     }
 
     @Override
@@ -106,10 +115,9 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
     private void displayAlbums() {
         adapter.clear();
-        SQLiteDatabase db = HandlingAlbums.getInstance(getContext().getApplicationContext()).getReadableDatabase();
         CPHelper.getAlbums(getContext(), hidden, excuded, sortingMode(), sortingOrder())
                 .subscribeOn(Schedulers.io())
-                .map(album -> album.withSettings(HandlingAlbums.getSettings(db, album.getPath())))
+                .map(album -> album.withSettings(db().getSettings(album.getPath())))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         album -> adapter.add(album),
@@ -118,7 +126,6 @@ public class AlbumsFragment extends BaseMediaGridFragment {
                             throwable.printStackTrace();
                         },
                         () -> {
-                            db.close();
                             if (getNothingToShowListener() != null)
                                 getNothingToShowListener().changedNothingToShow(getCount() == 0);
                             refresh.setRefreshing(false);
@@ -184,7 +191,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
         rv.setHasFixedSize(true);
         rv.addItemDecoration(spacingDecoration);
         rv.setLayoutManager(new GridLayoutManager(getContext(), spanCount));
-        if(Prefs.animationsEnabled()) {
+        if (Prefs.animationsEnabled()) {
             rv.setItemAnimator(
                     AnimationUtils.getItemAnimator(
                             new LandingAnimator(new OvershootInterpolator(1f))
@@ -206,8 +213,9 @@ public class AlbumsFragment extends BaseMediaGridFragment {
         return adapter.sortingOrder();
     }
 
-    private HandlingAlbums db() {
-        return HandlingAlbums.getInstance(getContext().getApplicationContext());
+    private AlbumRepository db() {
+        return AlbumRepository.Companion.getInstance(AppDatabase.Companion
+                .getInstance(getContext().getApplicationContext()).albumDao());
     }
 
     @Override
@@ -216,7 +224,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
         menu.findItem(R.id.select_all).setIcon(ThemeHelper.getToolbarIcon(getContext(), GoogleMaterial.Icon.gmd_select_all));
         menu.findItem(R.id.delete).setIcon(ThemeHelper.getToolbarIcon(getContext(), (GoogleMaterial.Icon.gmd_delete)));
-        menu.findItem(R.id.sort_action).setIcon(ThemeHelper.getToolbarIcon(getContext(),(GoogleMaterial.Icon.gmd_sort)));
+        menu.findItem(R.id.sort_action).setIcon(ThemeHelper.getToolbarIcon(getContext(), (GoogleMaterial.Icon.gmd_sort)));
         menu.findItem(R.id.search_action).setIcon(ThemeHelper.getToolbarIcon(getContext(), (GoogleMaterial.Icon.gmd_search)));
 
         super.onCreateOptionsMenu(menu, inflater);
@@ -241,11 +249,19 @@ public class AlbumsFragment extends BaseMediaGridFragment {
         } else {
             menu.findItem(R.id.ascending_sort_order).setChecked(sortingOrder() == SortingOrder.ASCENDING);
             switch (sortingMode()) {
-                case NAME:  menu.findItem(R.id.name_sort_mode).setChecked(true); break;
-                case SIZE:  menu.findItem(R.id.size_sort_mode).setChecked(true); break;
-                case DATE: default:
-                    menu.findItem(R.id.date_taken_sort_mode).setChecked(true); break;
-                case NUMERIC:  menu.findItem(R.id.numeric_sort_mode).setChecked(true); break;
+                case NAME:
+                    menu.findItem(R.id.name_sort_mode).setChecked(true);
+                    break;
+                case SIZE:
+                    menu.findItem(R.id.size_sort_mode).setChecked(true);
+                    break;
+                case DATE:
+                default:
+                    menu.findItem(R.id.date_taken_sort_mode).setChecked(true);
+                    break;
+                case NUMERIC:
+                    menu.findItem(R.id.numeric_sort_mode).setChecked(true);
+                    break;
             }
         }
 
@@ -376,7 +392,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
                 textViewExcludeTitle.setBackgroundColor(getPrimaryColor());
                 textViewExcludeTitle.setText(getString(R.string.exclude));
 
-                if(adapter.getSelectedCount() > 1) {
+                if (adapter.getSelectedCount() > 1) {
                     textViewExcludeMessage.setText(R.string.exclude_albums_message);
                     spinnerParents.setVisibility(View.GONE);
                 } else {
