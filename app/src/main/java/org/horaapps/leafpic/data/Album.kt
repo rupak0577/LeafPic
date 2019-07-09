@@ -8,13 +8,16 @@ import org.horaapps.leafpic.data.sort.SortingOrder
 
 @Entity(tableName = "albums",
         indices = [Index("path", unique = true)])
-data class AlbumK(
+data class Album(
         @PrimaryKey
         @ColumnInfo(name = "path") val path: String,
         @ColumnInfo(name = "id") val id: Long = -1,
         @ColumnInfo(name = "album_name") val albumName: String,
         @Embedded var albumInfo: AlbumInfo
-)
+) {
+    var selected: Boolean = false
+    var lastMedia: Media? = null
+}
 
 data class AlbumInfo(
         @ColumnInfo(name = "status") val status: Int = INCLUDED,
