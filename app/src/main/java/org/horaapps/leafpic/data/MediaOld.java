@@ -25,7 +25,7 @@ import java.io.IOException;
 /** Ideally, we should have separate data classes for images, videos & gifs
  *  Base class can be Media, and others should extend
  *  Try to separate out Database logic and projections from this class */
-public class Media implements TimelineItem, CursorHandler, Parcelable {
+public class MediaOld implements TimelineItem, CursorHandler, Parcelable {
 
     private static final String[] sProjection = new String[] {
             MediaStore.Images.Media.DATA,
@@ -50,9 +50,6 @@ public class Media implements TimelineItem, CursorHandler, Parcelable {
 
     private long size = -1;
     private boolean selected = false;
-
-    public Media() {
-    }
 
     public Media(String path, long dateModified) {
         this.path = path;
