@@ -1,34 +1,10 @@
 package org.horaapps.leafpic.data
 
 import androidx.room.TypeConverter
-import org.horaapps.leafpic.data.filter.FilterMode
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
 
 class Converters {
-    @TypeConverter
-    fun fromFilterMode(value: FilterMode): Int {
-        return when (value) {
-            FilterMode.ALL -> 0
-            FilterMode.IMAGES -> 1
-            FilterMode.GIF -> 2
-            FilterMode.VIDEO -> 3
-            FilterMode.NO_VIDEO -> 4
-        }
-    }
-
-    @TypeConverter
-    fun toFilterMode(value: Int): FilterMode {
-        return when (value) {
-            0 -> FilterMode.ALL
-            1 -> FilterMode.IMAGES
-            2 -> FilterMode.GIF
-            3 -> FilterMode.VIDEO
-            4 -> FilterMode.NO_VIDEO
-            else -> FilterMode.ALL
-        }
-    }
-
     @TypeConverter
     fun fromSortingOrder(value: SortingOrder): Int {
         return when (value) {

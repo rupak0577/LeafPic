@@ -43,8 +43,8 @@ public class AlbumsComparators {
 
     private static Comparator<Album> getPinned() {
         return (o1, o2) -> {
-            if (o1.isPinned() == o2.isPinned()) return 0;
-            return o1.isPinned() ? -1 : 1;
+            if (o1.getAlbumInfo().getPinned() == o2.getAlbumInfo().getPinned()) return 0;
+            return o1.getAlbumInfo().getPinned() ? -1 : 1;
         };
     }
 
@@ -56,7 +56,7 @@ public class AlbumsComparators {
         return (a1, a2) -> {
             int res = base.compare(a1, a2);
             if (res == 0)
-                return a1.getDateModified().compareTo(a2.getDateModified());
+                return Long.compare(a1.getAlbumInfo().getDateModified(), a2.getAlbumInfo().getDateModified());
             return res;
         };
     }
@@ -65,7 +65,7 @@ public class AlbumsComparators {
         return (a1, a2) -> {
             int res = base.compare(a1, a2);
             if (res == 0)
-                return a1.getName().toLowerCase().compareTo(a2.getName().toLowerCase());
+                return a1.getAlbumName().toLowerCase().compareTo(a2.getAlbumName().toLowerCase());
             return res;
         };
     }
@@ -74,7 +74,7 @@ public class AlbumsComparators {
         return (a1, a2) -> {
             int res = base.compare(a1, a2);
             if (res == 0)
-                return a1.getCount() - a2.getCount();
+                return a1.getFileCount() - a2.getFileCount();
             return res;
         };
     }
@@ -83,7 +83,7 @@ public class AlbumsComparators {
         return (a1, a2) -> {
             int res = base.compare(a1, a2);
             if (res == 0)
-                return NumericComparator.filevercmp(a1.getName().toLowerCase(), a2.getName().toLowerCase());
+                return NumericComparator.filevercmp(a1.getAlbumName().toLowerCase(), a2.getAlbumName().toLowerCase());
             return res;
         };
     }

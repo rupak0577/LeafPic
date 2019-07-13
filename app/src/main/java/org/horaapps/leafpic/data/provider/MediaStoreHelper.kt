@@ -187,8 +187,8 @@ class MediaStoreHelper {
             val album = Album(path = StringUtils.getBucketPathByImagePath(this.getString(3)),
                     albumName = this.getString(1),
                     id = this.getLong(0),
-                    albumInfo = AlbumInfo(fileCount = this.getInt(2),
-                            dateModified = this.getLong(4)))
+                    albumInfo = AlbumInfo(dateModified = this.getLong(4)))
+            album.fileCount = this.getInt(2)
             album.lastMedia = Media(this.getString(3))
             return album
         }

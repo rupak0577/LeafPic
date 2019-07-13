@@ -1,10 +1,8 @@
 package org.horaapps.leafpic.data
 
 import android.net.Uri
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.Index
-import androidx.room.PrimaryKey
+import androidx.room.*
+import org.horaapps.leafpic.timeline.data.TimelineItem
 import org.horaapps.leafpic.util.MimeTypeUtils
 import org.horaapps.leafpic.util.StringUtils
 import java.io.File
@@ -18,12 +16,16 @@ data class Media(
         @ColumnInfo val mimeType: String = MimeTypeUtils.UNKNOWN_MIME_TYPE,
         @ColumnInfo val dateModified: Long = -1,
         @ColumnInfo val orientation: Int = 0
-) {
-    val uri: Uri
-        get() {
-            return Uri.fromFile(File(path))
-        }
-    var selected: Boolean = false
+) : TimelineItem {
+    @Ignore var isSelected: Boolean = false
+
+    override fun getTimelineType(): Int {
+        return TimelineItem.TYPE_MEDIA
+    }
+
+    fun getUri(): Uri? {
+        return Uri.fromFile(File(path))
+    }
 
     fun isGif(): Boolean {
         return mimeType.endsWith("gif")
@@ -38,10 +40,28 @@ data class Media(
     }
 
     fun getDisplayPath(): String? {
-        return uri.encodedPath
+        return getUri()?.encodedPath ?: path
     }
 
     fun getName(): String {
         return StringUtils.getPhotoNameByPath(path)
+    }
+
+    fun toggleSelected(): Boolean {
+        isSelected = !isSelected
+        return isSelected
+    }
+
+    fun setSelectedState(newSelectedState: Boolean): Boolean {
+        if (newSelectedState == isSelected)
+            return false
+        this.isSelected = newSelectedState
+        return true
+    }
+
+    fun getFile(): File? {
+        val file = File(path)
+        if (file.exists()) return file
+        return null
     }
 }

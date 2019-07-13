@@ -2,7 +2,6 @@ package org.horaapps.leafpic.data.sort;
 
 import androidx.annotation.NonNull;
 
-import org.horaapps.leafpic.data.AlbumSettings;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.timeline.data.TimelineHeaderModel;
 import org.horaapps.leafpic.util.NumericComparator;
@@ -14,10 +13,6 @@ import java.util.Comparator;
  */
 
 public class MediaComparators {
-
-    public static Comparator<Media> getComparator(AlbumSettings settings) {
-        return getComparator(settings.getSortingMode(), settings.getSortingOrder());
-    }
 
     public static Comparator<Media> getComparator(SortingMode sortingMode, SortingOrder sortingOrder) {
         return sortingOrder == SortingOrder.ASCENDING
@@ -43,7 +38,7 @@ public class MediaComparators {
     }
 
     private static Comparator<Media> getDateComparator() {
-        return (f1, f2) -> f1.getDateModified().compareTo(f2.getDateModified());
+        return (f1, f2) -> Long.compare(f1.getDateModified(), f2.getDateModified());
     }
 
     private static Comparator<Media> getNameComparator() {

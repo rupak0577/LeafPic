@@ -123,7 +123,7 @@ public class MediaAdapter extends ThemedAdapter<MediaAdapter.ViewHolder> {
 
     public void selectAll() {
         for (int i = 0; i < media.size(); i++)
-            if (media.get(i).setSelected(true))
+            if (media.get(i).setSelectedState(true))
                 notifyItemChanged(i);
         selectedCount = media.size();
         startSelection();
@@ -132,7 +132,7 @@ public class MediaAdapter extends ThemedAdapter<MediaAdapter.ViewHolder> {
     public boolean clearSelected() {
         boolean changed = true;
         for (int i = 0; i < media.size(); i++) {
-            boolean b = media.get(i).setSelected(false);
+            boolean b = media.get(i).setSelectedState(false);
             if (b)
                 notifyItemChanged(i);
             changed &= b;
@@ -180,7 +180,7 @@ public class MediaAdapter extends ThemedAdapter<MediaAdapter.ViewHolder> {
         holder.gifIcon.setVisibility(f.isGif() ? View.VISIBLE : View.GONE);
 
         RequestOptions options = new RequestOptions()
-                .signature(f.getSignature())
+//                .signature(f.getSignature())
                 .format(DecodeFormat.PREFER_RGB_565)
                 .centerCrop()
                 .placeholder(placeholder)
@@ -305,7 +305,7 @@ public class MediaAdapter extends ThemedAdapter<MediaAdapter.ViewHolder> {
         if (indexRightBeforeOrAfter != -1) {
             for (int index = Math.min(targetIndex, indexRightBeforeOrAfter); index <= Math.max(targetIndex, indexRightBeforeOrAfter); index++) {
                 if (media.get(index) != null) {
-                    if (media.get(index).setSelected(true)) {
+                    if (media.get(index).setSelectedState(true)) {
                         notifySelected(true);
                         notifyItemChanged(index);
                     }
@@ -317,8 +317,8 @@ public class MediaAdapter extends ThemedAdapter<MediaAdapter.ViewHolder> {
 
     public void setupFor(Album album) {
         media.clear();
-        changeSortingMode(album.settings.getSortingMode());
-        changeSortingOrder(album.settings.getSortingOrder());
+        changeSortingMode(album.getAlbumInfo().getSortingMode());
+        changeSortingOrder(album.getAlbumInfo().getSortingOrder());
         notifyDataSetChanged();
     }
 

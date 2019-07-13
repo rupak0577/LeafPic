@@ -13,19 +13,31 @@ data class Album(
         @ColumnInfo(name = "path") val path: String,
         @ColumnInfo(name = "id") val id: Long = -1,
         @ColumnInfo(name = "album_name") val albumName: String,
-        @Embedded var albumInfo: AlbumInfo
+        @Embedded val albumInfo: AlbumInfo
 ) {
-    var selected: Boolean = false
-    var lastMedia: Media? = null
+    @Ignore var isSelected: Boolean = false
+    @Ignore var lastMedia: Media? = null
+    @Ignore var filterMode: FilterMode = FilterMode.ALL
+    @Ignore var fileCount: Int = -1
+
+    fun toggleSelected(): Boolean {
+        isSelected = !isSelected
+        return isSelected
+    }
+
+    fun setSelectedState(newSelectedState: Boolean): Boolean {
+        if (newSelectedState == isSelected)
+            return false
+        this.isSelected = newSelectedState
+        return true
+    }
 }
 
 data class AlbumInfo(
         @ColumnInfo(name = "status") val status: Int = INCLUDED,
         @ColumnInfo(name = "pinned") val pinned: Boolean = false,
-        @ColumnInfo(name = "file_count") val fileCount: Int = -1,
         @ColumnInfo(name = "date_modified") val dateModified: Long = -1,
         @ColumnInfo(name = "cover_path") val coverPath: String? = null,
         @ColumnInfo(name = "sorting_mode") val sortingMode: SortingMode = SortingMode.DATE,
-        @ColumnInfo(name = "sorting_order") val sortingOrder: SortingOrder = SortingOrder.ASCENDING,
-        @ColumnInfo(name = "filter_mode") val filterMode: FilterMode = FilterMode.ALL
+        @ColumnInfo(name = "sorting_order") val sortingOrder: SortingOrder = SortingOrder.ASCENDING
 )

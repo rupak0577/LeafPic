@@ -45,9 +45,9 @@ public class AlbumsHelper {
 
             Intent addIntent = new Intent();
             addIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
-            addIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, selectedAlbum.getName());
+            addIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, selectedAlbum.getAlbumName());
 
-            Media coverAlbum = selectedAlbum.getCover();
+            Media coverAlbum = AlbumExtsKt.getCover(selectedAlbum);
             File image = new File(coverAlbum.getPath());
             Bitmap bitmap = coverAlbum.isVideo() ? ThumbnailUtils.createVideoThumbnail(coverAlbum.getPath(), MediaStore.Images.Thumbnails.MINI_KIND)
                     : BitmapFactory.decodeFile(image.getAbsolutePath(), new BitmapFactory.Options());

@@ -57,7 +57,9 @@ public class VideoFragment extends BaseMediaFragment {
         // TODO: See where we can move this. Seems like boilerplate code that belongs in
         // a utility class or Builder of some sort.
         RequestOptions options =
-                new RequestOptions().signature(media.getSignature()).centerCrop()
+                new RequestOptions()
+//                        .signature(media.getSignature())
+                        .centerCrop()
                         .diskCacheStrategy(
                                 DiskCacheStrategy.AUTOMATIC);
 

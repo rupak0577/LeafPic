@@ -19,6 +19,7 @@ import com.bumptech.glide.request.RequestOptions;
 import org.horaapps.leafpic.CardViewStyle;
 import org.horaapps.leafpic.R;
 import org.horaapps.leafpic.data.Album;
+import org.horaapps.leafpic.data.AlbumExtsKt;
 import org.horaapps.leafpic.data.AlbumsHelper;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.data.sort.AlbumsComparators;
@@ -153,7 +154,7 @@ public class AlbumsAdapter extends ThemedAdapter<AlbumsAdapter.ViewHolder> {
 
     public void selectAll() {
         for (int i = 0; i < albums.size(); i++)
-            if (albums.get(i).setSelected(true))
+            if (albums.get(i).setSelectedState(true))
                 notifyItemChanged(i);
         selectedCount = albums.size();
         startSelection();
@@ -218,7 +219,7 @@ public class AlbumsAdapter extends ThemedAdapter<AlbumsAdapter.ViewHolder> {
 
         boolean changed = true;
         for (int i = 0; i < albums.size(); i++) {
-            boolean b = albums.get(i).setSelected(false);
+            boolean b = albums.get(i).setSelectedState(false);
             if (b)
                 notifyItemChanged(i);
             changed &= b;
@@ -271,10 +272,10 @@ public class AlbumsAdapter extends ThemedAdapter<AlbumsAdapter.ViewHolder> {
         Album a = albums.get(position);
         holder.refreshTheme(getThemeHelper(), cardViewStyle, a.isSelected());
 
-        Media f = a.getCover();
+        Media f = AlbumExtsKt.getCover(a);
 
         RequestOptions options = new RequestOptions()
-                .signature(f.getSignature())
+//                .signature(f.getSignature())
                 .format(DecodeFormat.PREFER_ARGB_8888)
                 .centerCrop()
                 .placeholder(placeholder)
@@ -301,8 +302,8 @@ public class AlbumsAdapter extends ThemedAdapter<AlbumsAdapter.ViewHolder> {
         holder.mediaLabel.setTextColor(textColor);
 
         holder.llCount.setVisibility(Prefs.showMediaCount() ? View.VISIBLE : View.GONE);
-        holder.name.setText(StringUtils.htmlFormat(a.getName(), textColor, false, true));
-        holder.nMedia.setText(StringUtils.htmlFormat(String.valueOf(a.getCount()), accentColor, true, false));
+        holder.name.setText(StringUtils.htmlFormat(a.getAlbumName(), textColor, false, true));
+        holder.nMedia.setText(StringUtils.htmlFormat(String.valueOf(a.getFileCount()), accentColor, true, false));
         holder.path.setVisibility(Prefs.showAlbumPath() ? View.VISIBLE : View.GONE);
         holder.path.setText(a.getPath());
 
@@ -347,7 +348,7 @@ public class AlbumsAdapter extends ThemedAdapter<AlbumsAdapter.ViewHolder> {
 
     private void reverseOrder() {
         int z = 0, size = getItemCount();
-        while (z < size && albums.get(z).isPinned())
+        while (z < size && albums.get(z).getAlbumInfo().getPinned())
             z++;
 
         for (int i = Math.max(0, z), mid = (i+size)>>1, j = size-1; i < mid; i++, j--)
