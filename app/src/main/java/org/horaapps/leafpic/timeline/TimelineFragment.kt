@@ -7,10 +7,12 @@ import androidx.annotation.IdRes
 import androidx.recyclerview.widget.GridLayoutManager
 import android.view.*
 import android.widget.Toast
+import androidx.lifecycle.ViewModelProviders
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.fragment_timeline.*
 import org.horaapps.leafpic.R
+import org.horaapps.leafpic.SharedVM
 import org.horaapps.leafpic.data.Album
 import org.horaapps.leafpic.data.Media
 import org.horaapps.leafpic.data.filter.FilterMode
@@ -47,9 +49,7 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
         private const val KEY_GROUPING_MODE = "key_grouping_mode"
         private const val KEY_FILTER_MODE = "key_filter_mode"
 
-        fun newInstance(album: Album) = TimelineFragment().apply {
-            arguments = Bundle().apply { putParcelable(ARGS_ALBUM, album) }
-        }
+        fun newInstance(album: Album) = TimelineFragment()
     }
 
     private lateinit var timelineAdapter: TimelineAdapter
@@ -65,7 +65,7 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
         get() = if (DeviceUtils.isPortrait(resources)) Defaults.TIMELINE_ITEMS_PORTRAIT
         else Defaults.TIMELINE_ITEMS_LANDSCAPE
 
-    override fun onAttach(context: Context?) {
+    override fun onAttach(context: Context) {
         super.onAttach(context)
         if (context is MediaClickListener) timelineListener = context
     }
@@ -75,15 +75,13 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
         setHasOptionsMenu(true)
 
         savedInstanceState?.let {
-            contentAlbum = it.getParcelable(KEY_ALBUM)
             groupingMode = it.get(KEY_GROUPING_MODE) as GroupingMode
             filterMode = it.get(KEY_FILTER_MODE) as FilterMode
             return
         }
 
-        /* Get content from arguments */
-        val arguments = arguments ?: return
-        contentAlbum = arguments.getParcelable(ARGS_ALBUM)
+        val sharedVM = ViewModelProviders.of(activity!!).get(SharedVM::class.java)
+        contentAlbum = sharedVM.album ?: return
 
         /* Set defaults */
         groupingMode = GroupingMode.DAY
@@ -190,7 +188,6 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.apply {
-            putParcelable(KEY_ALBUM, contentAlbum)
             putSerializable(KEY_GROUPING_MODE, groupingMode)
             putSerializable(KEY_FILTER_MODE, filterMode)
         }

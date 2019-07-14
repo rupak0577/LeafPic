@@ -3,8 +3,11 @@ package org.horaapps.leafpic.fragments;
 import android.content.Context;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
+import androidx.lifecycle.ViewModelProviders;
+
 import android.view.View;
 
+import org.horaapps.leafpic.SharedVM;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.liz.ThemeHelper;
 
@@ -21,10 +24,6 @@ public abstract class BaseMediaFragment extends BaseFragment {
     @NonNull
     protected static <T extends BaseMediaFragment> T newInstance(@NonNull T mediaFragment,
                                                                  @NonNull Media media) {
-
-        Bundle args = new Bundle();
-        args.putParcelable(ARGS_MEDIA, media);
-        mediaFragment.setArguments(args);
         return mediaFragment;
     }
 
@@ -34,16 +33,11 @@ public abstract class BaseMediaFragment extends BaseFragment {
         if (context instanceof MediaTapListener) mediaTapListener = (MediaTapListener) context;
     }
 
-    private void fetchArgs() {
-        Bundle args = getArguments();
-        if (args == null) throw new RuntimeException("Must pass arguments to Media Fragments!");
-        media = getArguments().getParcelable(ARGS_MEDIA);
-    }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        fetchArgs();
+        SharedVM sharedVM = ViewModelProviders.of(getActivity()).get(SharedVM.class);
+        media = sharedVM.getMedia();
     }
 
     @Override

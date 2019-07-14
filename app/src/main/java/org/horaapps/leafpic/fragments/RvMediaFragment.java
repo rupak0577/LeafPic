@@ -11,6 +11,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.appcompat.app.AlertDialog;
 import androidx.cardview.widget.CardView;
@@ -35,6 +36,7 @@ import android.widget.Toast;
 import com.mikepenz.google_material_typeface_library.GoogleMaterial;
 
 import org.horaapps.leafpic.R;
+import org.horaapps.leafpic.SharedVM;
 import org.horaapps.leafpic.activities.PaletteActivity;
 import org.horaapps.leafpic.adapters.MediaAdapter;
 import org.horaapps.leafpic.data.Album;
@@ -93,19 +95,13 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        if (savedInstanceState == null) {
-            album = getArguments().getParcelable(BUNDLE_ALBUM);
-            return;
-        }
 
-        album = savedInstanceState.getParcelable(BUNDLE_ALBUM);
+        SharedVM sharedVM = ViewModelProviders.of(getActivity()).get(SharedVM.class);
+        album = sharedVM.getAlbum();
     }
 
     public static RvMediaFragment make(Album album) {
         RvMediaFragment fragment = new RvMediaFragment();
-        Bundle bundle = new Bundle();
-        bundle.putParcelable(BUNDLE_ALBUM, album);
-        fragment.setArguments(bundle);
         return fragment;
     }
 
@@ -149,7 +145,6 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
-        outState.putParcelable(BUNDLE_ALBUM, album);
         super.onSaveInstanceState(outState);
     }
 

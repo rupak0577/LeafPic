@@ -20,6 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.print.PrintHelper;
 import androidx.viewpager.widget.ViewPager;
 import androidx.appcompat.app.AlertDialog;
@@ -45,6 +46,7 @@ import com.yalantis.ucrop.UCrop;
 
 import org.horaapps.leafpic.R;
 import org.horaapps.leafpic.SelectAlbumBuilder;
+import org.horaapps.leafpic.SharedVM;
 import org.horaapps.leafpic.activities.base.SharedMediaActivity;
 import org.horaapps.leafpic.adapters.MediaPagerAdapter;
 import org.horaapps.leafpic.animations.DepthPageTransformer;
@@ -161,20 +163,27 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
             mViewPager.setLocked(savedInstanceState.getBoolean(ISLOCKED_ARG, false));
         }
 
-        adapter = new MediaPagerAdapter(getSupportFragmentManager(), media);
+        adapter = new MediaPagerAdapter(getSupportFragmentManager(), media, this);
         initUi();
     }
 
+    public void setMediaInSharedVM(Media media) {
+        SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
+        sharedVM.setMedia(media);
+    }
+
     private void loadAlbum(Intent intent) {
-        album = intent.getParcelableExtra(EXTRA_ARGS_ALBUM);
+        SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
+        album = sharedVM.getAlbum();
         position = intent.getIntExtra(EXTRA_ARGS_POSITION, 0);
-        media = intent.getParcelableArrayListExtra(EXTRA_ARGS_MEDIA);
+        media = sharedVM.getMediaList();
     }
 
     private void loadAlbumsLazy(Intent intent) {
-        album = intent.getParcelableExtra(EXTRA_ARGS_ALBUM);
+        SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
+        album = sharedVM.getAlbum();
         //position = intent.getIntExtra(EXTRA_ARGS_POSITION, 0);
-        Media m = intent.getParcelableExtra(EXTRA_ARGS_MEDIA);
+        Media m = sharedVM.getMedia();
         media = new ArrayList<>();
         media.add(m);
         position = 0;

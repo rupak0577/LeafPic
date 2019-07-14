@@ -8,11 +8,13 @@ import androidx.viewpager.widget.PagerAdapter;
 import android.util.SparseArray;
 import android.view.ViewGroup;
 
+import org.horaapps.leafpic.activities.SingleMediaActivity;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.fragments.GifFragment;
 import org.horaapps.leafpic.fragments.ImageFragment;
 import org.horaapps.leafpic.fragments.VideoFragment;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
 /**
@@ -23,16 +25,20 @@ public class MediaPagerAdapter extends FragmentStatePagerAdapter {
 
     private final String TAG = "asd";
     private ArrayList<Media> media;
+    private WeakReference<SingleMediaActivity> singleMediaActivity;
     private SparseArray<Fragment> registeredFragments = new SparseArray<>();
 
-    public MediaPagerAdapter(FragmentManager fm, ArrayList<Media> media) {
+    public MediaPagerAdapter(FragmentManager fm, ArrayList<Media> media, SingleMediaActivity singleMediaActivity) {
         super(fm);
         this.media = media;
+        this.singleMediaActivity = new WeakReference<>(singleMediaActivity);
     }
 
     @Override
     public Fragment getItem(int pos) {
         Media media = this.media.get(pos);
+        if (singleMediaActivity.get() != null)
+            singleMediaActivity.get().setMediaInSharedVM(media);
         if (media.isVideo()) return VideoFragment.newInstance(media);
         if (media.isGif()) return GifFragment.newInstance(media);
         else return ImageFragment.newInstance(media);

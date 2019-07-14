@@ -22,6 +22,8 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.ViewModelProviders;
+
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
@@ -34,6 +36,7 @@ import com.orhanobut.hawk.Hawk;
 
 import org.horaapps.leafpic.BuildConfig;
 import org.horaapps.leafpic.R;
+import org.horaapps.leafpic.SharedVM;
 import org.horaapps.leafpic.about.AboutActivity;
 import org.horaapps.leafpic.activities.base.SharedMediaActivity;
 import org.horaapps.leafpic.data.Album;
@@ -171,6 +174,8 @@ public class MainActivity extends SharedMediaActivity implements
 
     public void displayMedia(Album album) {
         unreferenceFragments();
+        SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
+        sharedVM.setAlbum(album);
         rvMediaFragment = RvMediaFragment.make(album);
 
         fragmentMode = FragmentMode.MODE_MEDIA;
@@ -187,6 +192,8 @@ public class MainActivity extends SharedMediaActivity implements
 
     public void displayTimeline(Album album) {
         unreferenceFragments();
+        SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
+        sharedVM.setAlbum(album);
         timelineFragment = TimelineFragment.Companion.newInstance(album);
 
         fragmentMode = FragmentMode.MODE_TIMELINE;
@@ -211,17 +218,18 @@ public class MainActivity extends SharedMediaActivity implements
 
         if (!pickMode) {
             Intent intent = new Intent(getApplicationContext(), SingleMediaActivity.class);
-            intent.putExtra(SingleMediaActivity.EXTRA_ARGS_ALBUM, album);
+            SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
+            sharedVM.setAlbum(album);
+            sharedVM.setMediaList(media);
             try {
                 intent.setAction(SingleMediaActivity.ACTION_OPEN_ALBUM);
-                intent.putExtra(SingleMediaActivity.EXTRA_ARGS_MEDIA, media);
                 intent.putExtra(SingleMediaActivity.EXTRA_ARGS_POSITION, position);
                 startActivity(intent);
             } catch (Exception e) { // Putting too much data into the Bundle
                 // TODO: Find a better way to pass data between the activities - possibly a key to
                 // access a HashMap or a unique value of a singleton Data Repository of some sort.
                 intent.setAction(SingleMediaActivity.ACTION_OPEN_ALBUM_LAZY);
-                intent.putExtra(SingleMediaActivity.EXTRA_ARGS_MEDIA, media.get(position));
+                //intent.putExtra(SingleMediaActivity.EXTRA_ARGS_MEDIA, media.get(position));
                 startActivity(intent);
             }
 
