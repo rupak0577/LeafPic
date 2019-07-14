@@ -148,17 +148,11 @@ dependencies {
 
 
     // debug Only
-    //debugCompile project(':inappstoragereader')
-    implementation 'cat.ereza:customactivityoncrash:2.2.0'
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
     releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.multidex:multidex:2.0.1'
-
-    // TODO check them out
-    implementation 'com.turingtechnologies.materialscrollbar:lib:10.0.3'
-    implementation 'de.psdev.licensesdialog:licensesdialog:1.8.3'
 }
 
 Properties props = new Properties()
