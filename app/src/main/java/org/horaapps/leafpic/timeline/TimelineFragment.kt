@@ -3,24 +3,25 @@ package org.horaapps.leafpic.timeline
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
-import androidx.annotation.IdRes
-import androidx.recyclerview.widget.GridLayoutManager
 import android.view.*
 import android.widget.Toast
+import androidx.annotation.IdRes
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.fragment_timeline.*
 import org.horaapps.leafpic.R
 import org.horaapps.leafpic.SharedVM
 import org.horaapps.leafpic.data.Album
 import org.horaapps.leafpic.data.Media
+import org.horaapps.leafpic.data.Resource
+import org.horaapps.leafpic.data.Status
 import org.horaapps.leafpic.data.filter.FilterMode
 import org.horaapps.leafpic.data.filter.MediaFilter
-import org.horaapps.leafpic.data.provider.CPHelper
 import org.horaapps.leafpic.data.sort.MediaComparators
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
+import org.horaapps.leafpic.fragments.AlbumsViewModel
 import org.horaapps.leafpic.fragments.BaseMediaGridFragment
 import org.horaapps.leafpic.interfaces.MediaClickListener
 import org.horaapps.leafpic.items.ActionsListener
@@ -33,6 +34,7 @@ import org.horaapps.leafpic.util.shareMedia
 import org.horaapps.liz.ThemeHelper
 import org.horaapps.liz.ThemedActivity
 import java.util.*
+import javax.inject.Inject
 
 /**
  * Fragment which shows the Timeline.
@@ -51,6 +53,11 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
 
         fun newInstance(album: Album) = TimelineFragment()
     }
+
+    @Inject
+    internal lateinit var viewModelFactory: ViewModelProvider.Factory
+
+    private lateinit var albumsViewModel: AlbumsViewModel
 
     private lateinit var timelineAdapter: TimelineAdapter
     private lateinit var timelineListener: MediaClickListener
@@ -109,9 +116,8 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
         menu.findItem(getMenuForFilterMode(filterMode)).isChecked = true
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu?) {
+    override fun onPrepareOptionsMenu(menu: Menu) {
         super.onPrepareOptionsMenu(menu)
-        if (menu == null) return
 
         val isEditing = editMode()
         with(menu) {
@@ -250,18 +256,20 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
 
     private fun loadAlbum() {
         val mediaList = ArrayList<Media>()
-        CPHelper.getMedia(context, contentAlbum)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .filter { media -> MediaFilter.getFilter(filterMode).accept(media) }
-                .subscribe(
-                        { mediaList.add(it) },
-                        { _ -> timeline_swipe_refresh_layout!!.isRefreshing = false },
-                        {
-                            contentAlbum.count = mediaList.size
-                            timeline_swipe_refresh_layout!!.isRefreshing = false
-                            setAdapterMedia(mediaList)
-                        })
+        albumsViewModel.setAlbum(contentAlbum)
+        albumsViewModel.media.observe(viewLifecycleOwner, Observer<Resource<List<Media>>> {
+            if (it.status === Status.SUCCESS && it.data != null) {
+                for (m in it.data) {
+                    if (MediaFilter.getFilter(filterMode).accept(m))
+                        mediaList.add(m)
+                }
+                contentAlbum.fileCount = mediaList.size
+                timeline_swipe_refresh_layout!!.isRefreshing = false
+                setAdapterMedia(mediaList)
+            } else if (it.status === Status.ERROR) {
+                timeline_swipe_refresh_layout!!.isRefreshing = false
+            }
+        })
     }
 
     private fun setAdapterMedia(mediaList: ArrayList<Media>) {

@@ -8,7 +8,7 @@ import org.horaapps.leafpic.data.AlbumDao
 import org.horaapps.leafpic.data.AppDatabase
 import javax.inject.Singleton
 
-@Module
+@Module(includes = [ViewModelModule::class])
 class AppModule {
     @Singleton
     @Provides

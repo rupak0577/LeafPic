@@ -5,20 +5,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.lifecycle.ViewModelProviders;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import androidx.appcompat.app.AlertDialog;
-import androidx.cardview.widget.CardView;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.appcompat.widget.SwitchCompat;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -33,6 +24,17 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.SwitchCompat;
+import androidx.cardview.widget.CardView;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelProviders;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
 import com.mikepenz.google_material_typeface_library.GoogleMaterial;
 
 import org.horaapps.leafpic.R;
@@ -43,9 +45,9 @@ import org.horaapps.leafpic.data.Album;
 import org.horaapps.leafpic.data.AlbumRepository;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.data.MediaHelper;
+import org.horaapps.leafpic.data.Status;
 import org.horaapps.leafpic.data.filter.FilterMode;
 import org.horaapps.leafpic.data.filter.MediaFilter;
-import org.horaapps.leafpic.data.provider.CPHelper;
 import org.horaapps.leafpic.data.sort.SortingMode;
 import org.horaapps.leafpic.data.sort.SortingOrder;
 import org.horaapps.leafpic.di.Injector;
@@ -68,10 +70,10 @@ import org.horaapps.liz.ui.ThemedIcon;
 import java.util.ArrayList;
 import java.util.Locale;
 
+import javax.inject.Inject;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.schedulers.Schedulers;
 import jp.wasabeef.recyclerview.animators.LandingAnimator;
 
 /**
@@ -85,6 +87,11 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
     @BindView(R.id.media) RecyclerView rv;
     @BindView(R.id.swipe_refresh) SwipeRefreshLayout refresh;
+
+    @Inject
+    ViewModelProvider.Factory viewModelFactory;
+
+    private AlbumsViewModel albumsViewModel;
 
     private MediaAdapter adapter;
     private GridSpacingItemDecoration spacingDecoration;
@@ -125,22 +132,22 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     private void loadAlbum(Album album) {
         this.album = album;
         adapter.setupFor(album);
-        CPHelper.getMedia(getContext(), album)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .filter(media -> MediaFilter.getFilter(album.filterMode()).accept(media))
-                .subscribe(media -> adapter.add(media),
-                        throwable -> {
-                            refresh.setRefreshing(false);
-                            Log.wtf("asd", throwable);
-                        },
-                        () -> {
-                            album.setCount(getCount());
-                            if (getNothingToShowListener() != null)
-                                getNothingToShowListener().changedNothingToShow(getCount() == 0);
-                            refresh.setRefreshing(false);
-                        });
+        albumsViewModel.setAlbum(album);
+        albumsViewModel.getMedia().observe(getViewLifecycleOwner(), listResource -> {
+            if (listResource.getStatus() == Status.SUCCESS && listResource.getData() != null) {
+                for (Media m : listResource.getData()) {
+                    if (MediaFilter.getFilter(album.getFilterMode()).accept(m))
+                        adapter.add(m);
+                }
+                album.setFileCount(getCount());
+                if (getNothingToShowListener() != null)
+                    getNothingToShowListener().changedNothingToShow(getCount() == 0);
 
+                refresh.setRefreshing(false);
+            } else if (listResource.getStatus() == Status.ERROR) {
+                refresh.setRefreshing(false);
+            }
+        });
     }
 
     @Override
@@ -171,7 +178,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
                         new LandingAnimator(new OvershootInterpolator(1f))
                 ));
 
-        adapter = new MediaAdapter(getContext(), album.settings.getSortingMode(), album.settings.getSortingOrder(), this);
+        adapter = new MediaAdapter(getContext(), album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder(), this);
 
         refresh.setOnRefreshListener(this::reload);
         rv.setAdapter(adapter);
@@ -182,6 +189,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel.class);
         reload();
     }
 
@@ -222,15 +230,15 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
     @Override
     public String getToolbarTitle() {
-        return editMode() ? null : album.getName();
+        return editMode() ? null : album.getAlbumName();
     }
 
     public SortingMode sortingMode() {
-        return album.settings.getSortingMode();
+        return album.getAlbumInfo().getSortingMode();
     }
 
     public SortingOrder sortingOrder() {
-        return album.settings.getSortingOrder();
+        return album.getAlbumInfo().getSortingOrder();
     }
 
     private AlbumRepository db() {
@@ -321,8 +329,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
             case R.id.set_as_cover:
                 String path = adapter.getFirstSelected().getPath();
-                album.setCover(path);
-                db().setCover(album.getPath(), path);
+                albumsViewModel.setCover(album, path);
                 adapter.clearSelected();
                 return true;
 
@@ -361,29 +368,25 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
             case R.id.name_sort_mode:
                 adapter.changeSortingMode(SortingMode.NAME);
-                HandlingAlbums.getInstance(getContext()).setSortingMode(album.getPath(), SortingMode.NAME.getValue());
-                album.setSortingMode(SortingMode.NAME);
+                albumsViewModel.setSortingMode(album, SortingMode.NAME);
                 item.setChecked(true);
                 return true;
 
             case R.id.date_taken_sort_mode:
                 adapter.changeSortingMode(SortingMode.DATE);
-                HandlingAlbums.getInstance(getContext()).setSortingMode(album.getPath(), SortingMode.DATE.getValue());
-                album.setSortingMode(SortingMode.DATE);
+                albumsViewModel.setSortingMode(album, SortingMode.DATE);
                 item.setChecked(true);
                 return true;
 
             case R.id.size_sort_mode:
                 adapter.changeSortingMode(SortingMode.SIZE);
-                HandlingAlbums.getInstance(getContext()).setSortingMode(album.getPath(), SortingMode.SIZE.getValue());
-                album.setSortingMode(SortingMode.SIZE);
+                albumsViewModel.setSortingMode(album, SortingMode.SIZE);
                 item.setChecked(true);
                 return true;
 
             case R.id.numeric_sort_mode:
                 adapter.changeSortingMode(SortingMode.NUMERIC);
-                HandlingAlbums.getInstance(getContext()).setSortingMode(album.getPath(), SortingMode.NUMERIC.getValue());
-                album.setSortingMode(SortingMode.NUMERIC);
+                albumsViewModel.setSortingMode(album, SortingMode.NUMERIC);
                 item.setChecked(true);
                 return true;
 
@@ -391,8 +394,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
                 item.setChecked(!item.isChecked());
                 SortingOrder sortingOrder = SortingOrder.fromValue(item.isChecked());
                 adapter.changeSortingOrder(sortingOrder);
-                HandlingAlbums.getInstance(getContext()).setSortingOrder(album.getPath(), sortingOrder.getValue());
-                album.setSortingOrder(sortingOrder);
+                albumsViewModel.setSortingMode(album, sortingOrder);
                 return true;
 
             case R.id.delete:
@@ -434,8 +436,13 @@ public class RvMediaFragment extends BaseMediaGridFragment {
                     protected Void doInBackground(Affix.Options... arg0) {
                         ArrayList<Bitmap> bitmapArray = new ArrayList<Bitmap>();
                         for (int i = 0; i < adapter.getSelectedCount(); i++) {
-                            if(!adapter.getSelected().get(i).isVideo())
-                                bitmapArray.add(adapter.getSelected().get(i).getBitmap());
+                            if(!adapter.getSelected().get(i).isVideo()) {
+                                BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+                                Bitmap bitmap = BitmapFactory.decodeFile(adapter.getSelected().get(i).getPath(), bmOptions);
+                                bitmap = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth(), bitmap.getHeight(), true);
+
+                                bitmapArray.add(bitmap);
+                            }
                         }
 
                         if (bitmapArray.size() > 1)

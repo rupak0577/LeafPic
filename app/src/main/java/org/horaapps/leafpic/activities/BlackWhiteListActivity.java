@@ -62,7 +62,7 @@ public class BlackWhiteListActivity extends SharedMediaActivity {
 
     private void loadFolders(int type) {
         typeExcluded = type == EXCLUDED;
-        folders = new ArrayList<>(Injector.Companion.get().albumRepository().getFolders(type));
+//        folders = new ArrayList<>(Injector.Companion.get().albumRepository().getFolders(type));
         checkNothing();
         if (isExcludedMode()) setTitle(getString(R.string.excluded_items));
         else setTitle(getString(R.string.white_list));
@@ -98,7 +98,7 @@ public class BlackWhiteListActivity extends SharedMediaActivity {
         String[] list = dir.list(new ImageFileFilter(true));
         if (list != null && list.length > 0) {
             scanFile(getApplicationContext(), list);
-            HandlingAlbums.getInstance(getApplicationContext()).addFolderToWhiteList(dir.getPath());
+//            HandlingAlbums.getInstance(getApplicationContext()).addFolderToWhiteList(dir.getPath());
             folders.add(0, dir.getPath());
             adapter.notifyItemInserted(0);
             checkNothing();
@@ -187,7 +187,7 @@ public class BlackWhiteListActivity extends SharedMediaActivity {
         private View.OnClickListener listener = v -> {
             String path = (String) v.getTag();
             int i = folders.indexOf(path);
-            HandlingAlbums.getInstance(getApplicationContext()).clearStatusFolder(path);
+//            HandlingAlbums.getInstance(getApplicationContext()).clearStatusFolder(path);
             folders.remove(i);
             notifyItemRemoved(i);
             checkNothing();

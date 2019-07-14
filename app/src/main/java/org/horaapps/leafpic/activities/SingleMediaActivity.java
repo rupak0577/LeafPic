@@ -15,16 +15,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
 import android.provider.Settings;
-import androidx.annotation.CallSuper;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.core.content.ContextCompat;
-import androidx.lifecycle.ViewModelProviders;
-import androidx.print.PrintHelper;
-import androidx.viewpager.widget.ViewPager;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -37,6 +27,18 @@ import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.CallSuper;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelProviders;
+import androidx.print.PrintHelper;
+import androidx.viewpager.widget.ViewPager;
 
 import com.bumptech.glide.Glide;
 import com.mikepenz.community_material_typeface_library.CommunityMaterial;
@@ -51,13 +53,13 @@ import org.horaapps.leafpic.activities.base.SharedMediaActivity;
 import org.horaapps.leafpic.adapters.MediaPagerAdapter;
 import org.horaapps.leafpic.animations.DepthPageTransformer;
 import org.horaapps.leafpic.data.Album;
-import org.horaapps.leafpic.data.AlbumSettings;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.data.MediaHelper;
+import org.horaapps.leafpic.data.Status;
 import org.horaapps.leafpic.data.StorageHelper;
 import org.horaapps.leafpic.data.filter.MediaFilter;
-import org.horaapps.leafpic.data.provider.CPHelper;
 import org.horaapps.leafpic.data.sort.MediaComparators;
+import org.horaapps.leafpic.fragments.AlbumsViewModel;
 import org.horaapps.leafpic.fragments.BaseMediaFragment;
 import org.horaapps.leafpic.fragments.ImageFragment;
 import org.horaapps.leafpic.util.AlertDialogsHelper;
@@ -76,6 +78,8 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
+
+import javax.inject.Inject;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -105,6 +109,11 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
     @BindView(R.id.photos_pager) HackyViewPager mViewPager;
     @BindView(R.id.PhotoPager_Layout) RelativeLayout activityBackground;
     @BindView(R.id.toolbar) Toolbar toolbar;
+
+    @Inject
+    ViewModelProvider.Factory viewModelFactory;
+
+    private AlbumsViewModel albumsViewModel;
 
     private boolean fullScreenMode, customUri = false;
     private int position;
@@ -147,7 +156,7 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
                     loadAlbumsLazy(getIntent());
                     break;
                 default:
-                    loadUri(getIntent().getData());
+                    //loadUri(getIntent().getData());
                     break;
 
             }
@@ -162,6 +171,8 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
         if (savedInstanceState != null) {
             mViewPager.setLocked(savedInstanceState.getBoolean(ISLOCKED_ARG, false));
         }
+
+        albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel.class);
 
         adapter = new MediaPagerAdapter(getSupportFragmentManager(), media, this);
         initUi();
@@ -190,69 +201,64 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
 
         ArrayList<Media> list = new ArrayList<>();
 
-        Disposable disposable = CPHelper.getMedia(getApplicationContext(), album)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .filter(media -> MediaFilter.getFilter(album.filterMode()).accept(media) && !media.equals(m))
-                .subscribe(ma -> {
-                            int i = Collections.binarySearch(
-                                    list, ma, MediaComparators.getComparator(album.settings));
-                            if (i < 0) i = ~i;
-                            list.add(i, ma);
-                        },
-                        throwable -> {
-                            Log.wtf("asd", throwable);
-                        },
-                        () -> {
-                            int i = Collections.binarySearch(
-                                    list, m, MediaComparators.getComparator(album.settings));
-                            if (i < 0) i = ~i;
-
-                            list.add(i, m);
-                            media.clear();
-                            media.addAll(list);
-                            adapter.notifyDataSetChanged();
-                            position = i;
-                            mViewPager.setCurrentItem(position);
-
-                            updatePageTitle(position);
-
-                        });
-
-        disposeLater(disposable);
-    }
-
-    private void loadUri(Uri uri) {
-        album = new Album(uri.toString(), uri.getPath());
-        album.settings = AlbumSettings.getDefaults();
-
-        /*
-        String path = StorageHelper.getMediaPath(getApplicationContext(), getIntent().getData());
-                Album album = null;
-
-                if (path != null) {
-                    album = ContentProviderHelper.getAlbumFromMedia(getApplicationContext(), path);
-                    if (album != null) {
-                        //album.updatePhotos(getApplicationContext());
-                        album.setCurrentMedia(path);
+        albumsViewModel.setAlbum(album);
+        albumsViewModel.getMedia().observe(this, listResource -> {
+            if (listResource.getStatus() == Status.SUCCESS && listResource.getData() != null) {
+                for (Media ma : listResource.getData()) {
+                    if (MediaFilter.getFilter(album.getFilterMode()).accept(ma) && !ma.equals(m)) {
+                        int i = Collections.binarySearch(
+                                list, ma, MediaComparators.getComparator(album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder()));
+                        if (i < 0) i = ~i;
+                        list.add(i, ma);
                     }
                 }
-        */
+                int i = Collections.binarySearch(
+                        list, m, MediaComparators.getComparator(album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder()));
+                if (i < 0) i = ~i;
 
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(uri);
-            if (inputStream != null) inputStream.close();
-        } catch (Exception ex) {
-            boolean showEasterEgg = Prefs.showEasterEgg();
-            ((TextView) findViewById(R.id.nothing_to_show_text_emoji_easter_egg)).setText(R.string.error_occured_open_media);
-            findViewById(R.id.nothing_to_show_placeholder).setVisibility(!showEasterEgg ? View.VISIBLE : View.GONE);
-            findViewById(R.id.ll_emoji_easter_egg).setVisibility(showEasterEgg ? View.VISIBLE : View.GONE);
-        }
+                list.add(i, m);
+                media.clear();
+                media.addAll(list);
+                adapter.notifyDataSetChanged();
+                position = i;
+                mViewPager.setCurrentItem(position);
 
-        media = new ArrayList<>(Collections.singletonList(new Media(uri)));
-        position = 0;
-        customUri = true;
+                updatePageTitle(position);
+            }
+        });
     }
+
+//    private void loadUri(Uri uri) {
+//        album = new Album(uri.toString(), uri.getPath());
+//        album.settings = AlbumSettings.getDefaults();
+//
+//        /*
+//        String path = StorageHelper.getMediaPath(getApplicationContext(), getIntent().getData());
+//                Album album = null;
+//
+//                if (path != null) {
+//                    album = ContentProviderHelper.getAlbumFromMedia(getApplicationContext(), path);
+//                    if (album != null) {
+//                        //album.updatePhotos(getApplicationContext());
+//                        album.setCurrentMedia(path);
+//                    }
+//                }
+//        */
+//
+//        try {
+//            InputStream inputStream = getContentResolver().openInputStream(uri);
+//            if (inputStream != null) inputStream.close();
+//        } catch (Exception ex) {
+//            boolean showEasterEgg = Prefs.showEasterEgg();
+//            ((TextView) findViewById(R.id.nothing_to_show_text_emoji_easter_egg)).setText(R.string.error_occured_open_media);
+//            findViewById(R.id.nothing_to_show_placeholder).setVisibility(!showEasterEgg ? View.VISIBLE : View.GONE);
+//            findViewById(R.id.ll_emoji_easter_egg).setVisibility(showEasterEgg ? View.VISIBLE : View.GONE);
+//        }
+//
+//        media = new ArrayList<>(Collections.singletonList(new Media(uri)));
+//        position = 0;
+//        customUri = true;
+//    }
 
     private void initUi() {
 
@@ -316,7 +322,7 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
         @Override
         public void run() {
             try {
-                mViewPager.setCurrentItem((mViewPager.getCurrentItem() + 1) % album.getCount());
+                mViewPager.setCurrentItem((mViewPager.getCurrentItem() + 1) % album.getFileCount());
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {

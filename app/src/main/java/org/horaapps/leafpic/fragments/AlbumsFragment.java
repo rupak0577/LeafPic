@@ -5,13 +5,6 @@ import android.content.DialogInterface;
 import android.content.res.Configuration;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import androidx.appcompat.app.AlertDialog;
-import androidx.cardview.widget.CardView;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -23,20 +16,29 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.cardview.widget.CardView;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelProviders;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
 import com.mikepenz.google_material_typeface_library.GoogleMaterial;
 import com.orhanobut.hawk.Hawk;
 
 import org.horaapps.leafpic.R;
 import org.horaapps.leafpic.adapters.AlbumsAdapter;
 import org.horaapps.leafpic.data.Album;
-import org.horaapps.leafpic.data.AlbumRepository;
+import org.horaapps.leafpic.data.AlbumExtsKt;
 import org.horaapps.leafpic.data.AlbumsHelper;
 import org.horaapps.leafpic.data.MediaHelper;
+import org.horaapps.leafpic.data.Status;
 import org.horaapps.leafpic.data.StorageHelper;
-import org.horaapps.leafpic.data.provider.CPHelper;
 import org.horaapps.leafpic.data.sort.SortingMode;
 import org.horaapps.leafpic.data.sort.SortingOrder;
-import org.horaapps.leafpic.di.Injector;
 import org.horaapps.leafpic.progress.ProgressBottomSheet;
 import org.horaapps.leafpic.util.AlertDialogsHelper;
 import org.horaapps.leafpic.util.AnimationUtils;
@@ -53,10 +55,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import javax.inject.Inject;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.schedulers.Schedulers;
 import jp.wasabeef.recyclerview.animators.LandingAnimator;
 
 /**
@@ -71,6 +73,11 @@ public class AlbumsFragment extends BaseMediaGridFragment {
     RecyclerView rv;
     @BindView(R.id.swipe_refresh)
     SwipeRefreshLayout refresh;
+
+    @Inject
+    ViewModelProvider.Factory viewModelFactory;
+
+    private AlbumsViewModel albumsViewModel;
 
     private AlbumsAdapter adapter;
     private GridSpacingItemDecoration spacingDecoration;
@@ -87,7 +94,6 @@ public class AlbumsFragment extends BaseMediaGridFragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        excuded = new ArrayList<>(db().getExcludedFolders());
         HashSet<File> storageRoots = StorageHelper.getStorageRoots(getContext());
         for (File file : storageRoots)
             // it has a lot of garbage
@@ -115,28 +121,28 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
     private void displayAlbums() {
         adapter.clear();
-        CPHelper.getAlbums(getContext(), hidden, excuded, sortingMode(), sortingOrder())
-                .subscribeOn(Schedulers.io())
-                .map(album -> album.withSettings(db().getSettings(album.getPath())))
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                        album -> adapter.add(album),
-                        throwable -> {
-                            refresh.setRefreshing(false);
-                            throwable.printStackTrace();
-                        },
-                        () -> {
-                            if (getNothingToShowListener() != null)
-                                getNothingToShowListener().changedNothingToShow(getCount() == 0);
-                            refresh.setRefreshing(false);
+        albumsViewModel.setShowHidden(hidden);
+        albumsViewModel.getAlbums().observe(getViewLifecycleOwner(), listResource -> {
+            if (listResource.getStatus() == Status.SUCCESS && listResource.getData() != null) {
+                for (Album a : listResource.getData())
+                    adapter.add(a);
 
-                            Hawk.put(hidden ? "h" : "albums", adapter.getAlbumsPaths());
-                        });
+                if (getNothingToShowListener() != null)
+                    getNothingToShowListener().changedNothingToShow(getCount() == 0);
+
+                Hawk.put(hidden ? "h" : "albums", adapter.getAlbumsPaths());
+
+                refresh.setRefreshing(false);
+            } else if (listResource.getStatus() == Status.ERROR) {
+                refresh.setRefreshing(false);
+            }
+        });
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel.class);
         displayAlbums();
     }
 
@@ -213,10 +219,6 @@ public class AlbumsFragment extends BaseMediaGridFragment {
         return adapter.sortingOrder();
     }
 
-    private AlbumRepository db() {
-        return Injector.Companion.get().albumRepository();
-    }
-
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.grid_albums, menu);
@@ -266,8 +268,8 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
         if (oneSelected) {
             Album selectedAlbum = adapter.getFirstSelectedAlbum();
-            menu.findItem(R.id.pin_album).setTitle(selectedAlbum.isPinned() ? getString(R.string.un_pin) : getString(R.string.pin));
-            menu.findItem(R.id.clear_album_cover).setVisible(selectedAlbum.hasCover());
+            menu.findItem(R.id.pin_album).setTitle(selectedAlbum.getAlbumInfo().getPinned() ? getString(R.string.un_pin) : getString(R.string.pin));
+            menu.findItem(R.id.clear_album_cover).setVisible(selectedAlbum.getAlbumInfo().getCoverPath() != null);
         }
 
         super.onPrepareOptionsMenu(menu);
@@ -287,8 +289,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
             case R.id.pin_album:
                 if (selectedAlbum != null) {
-                    boolean b = selectedAlbum.togglePinAlbum();
-                    db().setPined(selectedAlbum.getPath(), b);
+                    albumsViewModel.setPinned(selectedAlbum, !selectedAlbum.getAlbumInfo().getPinned());
                     adapter.clearSelected();
                     adapter.sort();
                 }
@@ -296,8 +297,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
             case R.id.clear_album_cover:
                 if (selectedAlbum != null) {
-                    selectedAlbum.removeCoverAlbum();
-                    db().setCover(selectedAlbum.getPath(), null);
+                    albumsViewModel.setCover(selectedAlbum, "");
                     adapter.clearSelected();
                     adapter.notifyItemChanaged(selectedAlbum);
                     // TODO: 4/5/17 updateui
@@ -331,7 +331,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
                 if (!hidden) {
                     hideDialog.setButton(AlertDialog.BUTTON_NEUTRAL, getString(R.string.exclude).toUpperCase(), (dialog, which) -> {
                         for (Album album : adapter.getSelectedAlbums()) {
-                            db().excludeAlbum(album.getPath());
+                            albumsViewModel.excludeAlbum(selectedAlbum);
                             excuded.add(album.getPath());
                         }
                         adapter.removeSelectedAlbums();
@@ -396,7 +396,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
                     spinnerParents.setVisibility(View.GONE);
                 } else {
                     textViewExcludeMessage.setText(R.string.exclude_album_message);
-                    spinnerParents.setAdapter(getThemeHelper().getSpinnerAdapter(adapter.getFirstSelectedAlbum().getParentsFolders()));
+                    spinnerParents.setAdapter(getThemeHelper().getSpinnerAdapter(AlbumExtsKt.getParentsFolders(adapter.getFirstSelectedAlbum())));
                 }
 
                 textViewExcludeMessage.setTextColor(getTextColor());
@@ -406,14 +406,14 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
                     if (adapter.getSelectedCount() > 1) {
                         for (Album album : adapter.getSelectedAlbums()) {
-                            db().excludeAlbum(album.getPath());
+                            albumsViewModel.excludeAlbum(album);
                             excuded.add(album.getPath());
                         }
                         adapter.removeSelectedAlbums();
 
                     } else {
                         String path = spinnerParents.getSelectedItem().toString();
-                        db().excludeAlbum(path);
+//                        db().excludeAlbum(path);
                         excuded.add(path);
                         adapter.removeAlbumsThatStartsWith(path);
                         adapter.forceSelectedCount(0);

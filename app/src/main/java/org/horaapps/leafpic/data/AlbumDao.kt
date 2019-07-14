@@ -6,7 +6,10 @@ import androidx.room.*
 @Dao
 abstract class AlbumDao : BaseDao() {
     @Query("SELECT * FROM albums WHERE status = :status")
-    abstract fun getAlbumsWithStatus(status: Int): LiveData<List<Album>>
+    abstract fun getAlbumsWithStatusAsLiveData(status: Int): LiveData<List<Album>>
+
+    @Query("SELECT * FROM albums WHERE status = :status")
+    abstract suspend fun getAlbumsWithStatus(status: Int): List<Album>
 
     @Query("SELECT EXISTS(SELECT 1 FROM albums WHERE path = :path LIMIT 1)")
     abstract fun ifExists(path: String): LiveData<Album?>
@@ -16,4 +19,7 @@ abstract class AlbumDao : BaseDao() {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertAlbum(album: Album)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun insertAlbums(albums: List<Album>)
 }
