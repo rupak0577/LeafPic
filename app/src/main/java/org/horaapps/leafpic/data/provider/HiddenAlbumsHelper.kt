@@ -72,7 +72,7 @@ class HiddenAlbumsHelper {
                     val album = Album(path = dir.absolutePath, albumName = dir.name,
                             albumInfo = AlbumInfo(dateModified = lastMod))
                     album.fileCount = files.size
-                    album.lastMedia = Media(choice.absolutePath)
+                    album.lastMedia = Media(choice.absolutePath, album.path)
                     return album
                 }
             }

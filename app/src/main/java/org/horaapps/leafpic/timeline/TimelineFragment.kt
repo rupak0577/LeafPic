@@ -14,8 +14,6 @@ import org.horaapps.leafpic.R
 import org.horaapps.leafpic.SharedVM
 import org.horaapps.leafpic.data.Album
 import org.horaapps.leafpic.data.Media
-import org.horaapps.leafpic.data.Resource
-import org.horaapps.leafpic.data.Status
 import org.horaapps.leafpic.data.filter.FilterMode
 import org.horaapps.leafpic.data.filter.MediaFilter
 import org.horaapps.leafpic.data.sort.MediaComparators

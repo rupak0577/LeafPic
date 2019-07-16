@@ -11,7 +11,7 @@ fun getAllMediaAlbum(): Album {
 
 fun Album.getCover(): Media? {
     if (this.albumInfo.coverPath != null)
-        return Media(this.albumInfo.coverPath)
+        return Media(this.albumInfo.coverPath, this.path)
     return this.lastMedia
     // TODO: 11/20/16 how should i handle this?
 }

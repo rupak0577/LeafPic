@@ -1,53 +1,72 @@
 package org.horaapps.leafpic.data
 
 import android.content.ContentResolver
-import android.content.Context
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.horaapps.leafpic.EXCLUDED
-import org.horaapps.leafpic.data.provider.HiddenAlbumsHelper
 import org.horaapps.leafpic.data.provider.MediaStoreHelper
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
 import javax.inject.Inject
 
-class AlbumRepository @Inject constructor(private val albumDao: AlbumDao) {
+class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
+                                          private val mediaDao: MediaDao) {
 
-    fun getFolders(status: Int): LiveData<List<Album>> {
-        return albumDao.getAlbumsWithStatusAsLiveData(status)
+    private val albumLoadingState = MutableLiveData<LoadingState>()
+    private val mediaLoadingState = MutableLiveData<LoadingState>()
+
+    private fun getLoadingState(albumState: Boolean): LiveData<LoadingState> {
+        return when (albumState) {
+            true -> albumLoadingState
+            false -> mediaLoadingState
+        }
     }
 
-    suspend fun getFoldersWithStatus(status: Int): List<Album> {
-        return albumDao.getAlbumsWithStatus(status)
+    fun getAlbums(status: Int): Listing<Album> {
+        return Listing(list = albumDao.getAlbumsWithStatusAsLiveData(status),
+                loadingState = getLoadingState(true))
     }
 
     suspend fun loadAlbums(contentResolver: ContentResolver, sortingMode: SortingMode,
-                           sortingOrder: SortingOrder): List<Album> {
-        val albumsFromDb = getFoldersWithStatus(EXCLUDED)
-        albumsFromDb.isEmpty().let {
-            val storeList = MediaStoreHelper.getAlbums(contentResolver, emptyList(), sortingMode, sortingOrder)
+                           sortingOrder: SortingOrder) {
+        albumLoadingState.value = LoadingState.LOADING
+        try {
             coroutineScope {
+                val albumsFromDb = albumDao.getAlbumsWithStatus(EXCLUDED)
+                val storeList = MediaStoreHelper.getAlbums(contentResolver, albumsFromDb,
+                        sortingMode, sortingOrder)
+
                 launch {
-                    insertAlbums(storeList)
+                    upsertAlbums(storeList)
+                    albumLoadingState.value = LoadingState.LOADED
                 }
             }
-            storeList
+        } catch (exception: Exception) {
+            albumLoadingState.value = LoadingState.error(exception.message)
         }
-        return albumsFromDb
     }
 
-    suspend fun loadHiddenAlbums(context: Context): List<Album> {
-        val albumsFromDb = getFoldersWithStatus(EXCLUDED)
-        return HiddenAlbumsHelper.getHiddenAlbums(context, albumsFromDb)
+    fun getMedia(album: Album): Listing<Media> {
+        return Listing(list = mediaDao.getMediaForAlbum(albumPath = album.path),
+                loadingState = getLoadingState(false))
     }
 
-    suspend fun loadMedia(contentResolver: ContentResolver, album: Album): List<Media> {
-        return MediaStoreHelper.getMedia(contentResolver, album)
-    }
+    suspend fun loadMedia(contentResolver: ContentResolver, album: Album) {
+        mediaLoadingState.value = LoadingState.LOADING
+        try {
+            coroutineScope {
+                val storeList = MediaStoreHelper.getMedia(contentResolver, album)
 
-    fun getSettings(path: String): LiveData<Album?> {
-        return albumDao.ifExists(path)
+                launch {
+                    upsertMediaList(storeList)
+                    mediaLoadingState.value = LoadingState.LOADED
+                }
+            }
+        } catch (exception: Exception) {
+            mediaLoadingState.value = LoadingState.error(exception.message)
+        }
     }
 
     suspend fun updateAlbum(album: Album) {
@@ -62,11 +81,7 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao) {
         albumDao.insertOrUpdate(albums)
     }
 
-    suspend fun insertAlbum(album: Album) {
-        albumDao.insertAlbum(album)
-    }
-
-    suspend fun insertAlbums(albums: List<Album>) {
-        albumDao.insertAlbums(albums)
+    suspend fun upsertMediaList(mediaList: List<Media>) {
+        mediaDao.insertOrUpdate(mediaList)
     }
 }
