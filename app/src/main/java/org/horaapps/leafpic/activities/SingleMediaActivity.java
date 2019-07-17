@@ -55,10 +55,10 @@ import org.horaapps.leafpic.animations.DepthPageTransformer;
 import org.horaapps.leafpic.data.Album;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.data.MediaHelper;
-import org.horaapps.leafpic.data.Status;
 import org.horaapps.leafpic.data.StorageHelper;
 import org.horaapps.leafpic.data.filter.MediaFilter;
 import org.horaapps.leafpic.data.sort.MediaComparators;
+import org.horaapps.leafpic.di.Injector;
 import org.horaapps.leafpic.fragments.AlbumsViewModel;
 import org.horaapps.leafpic.fragments.BaseMediaFragment;
 import org.horaapps.leafpic.fragments.ImageFragment;
@@ -172,6 +172,7 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
             mViewPager.setLocked(savedInstanceState.getBoolean(ISLOCKED_ARG, false));
         }
 
+        viewModelFactory = Injector.Companion.get().viewModelFactory();
         albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel.class);
 
         adapter = new MediaPagerAdapter(getSupportFragmentManager(), media, this);
@@ -199,31 +200,33 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
         media.add(m);
         position = 0;
 
-        ArrayList<Media> list = new ArrayList<>();
-
         albumsViewModel.setAlbum(album);
-        albumsViewModel.getMedia().observe(this, listResource -> {
-            if (listResource.getStatus() == Status.SUCCESS && listResource.getData() != null) {
-                for (Media ma : listResource.getData()) {
-                    if (MediaFilter.getFilter(album.getFilterMode()).accept(ma) && !ma.equals(m)) {
-                        int i = Collections.binarySearch(
-                                list, ma, MediaComparators.getComparator(album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder()));
-                        if (i < 0) i = ~i;
-                        list.add(i, ma);
-                    }
+        albumsViewModel.getMedia().observe(this, mediaList -> {
+            ArrayList<Media> list = new ArrayList<>();
+            for (Media ma : mediaList) {
+                if (MediaFilter.getFilter(album.getFilterMode()).accept(ma) && !ma.equals(m)) {
+                    int i = Collections.binarySearch(
+                            list, ma, MediaComparators.getComparator(album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder()));
+                    if (i < 0) i = ~i;
+                    list.add(i, ma);
                 }
-                int i = Collections.binarySearch(
-                        list, m, MediaComparators.getComparator(album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder()));
-                if (i < 0) i = ~i;
+            }
+            int i = Collections.binarySearch(
+                    list, m, MediaComparators.getComparator(album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder()));
+            if (i < 0) i = ~i;
 
-                list.add(i, m);
-                media.clear();
-                media.addAll(list);
-                adapter.notifyDataSetChanged();
-                position = i;
-                mViewPager.setCurrentItem(position);
+            list.add(i, m);
+            media.clear();
+            media.addAll(list);
+            adapter.notifyDataSetChanged();
+            position = i;
+            mViewPager.setCurrentItem(position);
 
-                updatePageTitle(position);
+            updatePageTitle(position);
+        });
+        albumsViewModel.getMediaLoadingState().observe(this, state -> {
+            if (state.getMsg() != null) {
+                Toast.makeText(this, state.getMsg(), Toast.LENGTH_SHORT).show();
             }
         });
     }

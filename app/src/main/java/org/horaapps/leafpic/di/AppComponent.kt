@@ -1,8 +1,9 @@
 package org.horaapps.leafpic.di
 
-import android.app.Application
+import androidx.lifecycle.ViewModelProvider
 import dagger.BindsInstance
 import dagger.Component
+import org.horaapps.leafpic.App
 import org.horaapps.leafpic.data.AlbumDao
 import org.horaapps.leafpic.data.AlbumRepository
 import org.horaapps.leafpic.data.AppDatabase
@@ -14,7 +15,7 @@ interface AppComponent {
     @Component.Builder
     interface Builder {
         @BindsInstance
-        fun application(application: Application): Builder
+        fun application(application: App): Builder
 
         fun build(): AppComponent
     }
@@ -22,4 +23,5 @@ interface AppComponent {
     fun albumDao(): AlbumDao
     fun db(): AppDatabase
     fun albumRepository(): AlbumRepository
+    fun viewModelFactory(): ViewModelProvider.Factory
 }

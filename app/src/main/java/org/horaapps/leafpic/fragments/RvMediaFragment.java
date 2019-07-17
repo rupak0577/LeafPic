@@ -43,9 +43,9 @@ import org.horaapps.leafpic.activities.PaletteActivity;
 import org.horaapps.leafpic.adapters.MediaAdapter;
 import org.horaapps.leafpic.data.Album;
 import org.horaapps.leafpic.data.AlbumRepository;
+import org.horaapps.leafpic.data.LoadingState;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.data.MediaHelper;
-import org.horaapps.leafpic.data.Status;
 import org.horaapps.leafpic.data.filter.FilterMode;
 import org.horaapps.leafpic.data.filter.MediaFilter;
 import org.horaapps.leafpic.data.sort.SortingMode;
@@ -115,6 +115,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
+        viewModelFactory = Injector.Companion.get().viewModelFactory();
     }
 
     @Override
@@ -133,21 +134,6 @@ public class RvMediaFragment extends BaseMediaGridFragment {
         this.album = album;
         adapter.setupFor(album);
         albumsViewModel.setAlbum(album);
-        albumsViewModel.getMedia().observe(getViewLifecycleOwner(), listResource -> {
-            if (listResource.getStatus() == Status.SUCCESS && listResource.getData() != null) {
-                for (Media m : listResource.getData()) {
-                    if (MediaFilter.getFilter(album.getFilterMode()).accept(m))
-                        adapter.add(m);
-                }
-                album.setFileCount(getCount());
-                if (getNothingToShowListener() != null)
-                    getNothingToShowListener().changedNothingToShow(getCount() == 0);
-
-                refresh.setRefreshing(false);
-            } else if (listResource.getStatus() == Status.ERROR) {
-                refresh.setRefreshing(false);
-            }
-        });
     }
 
     @Override
@@ -190,6 +176,25 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel.class);
+
+        albumsViewModel.getMedia().observe(getViewLifecycleOwner(), list -> {
+            for (Media m : list) {
+                if (MediaFilter.getFilter(album.getFilterMode()).accept(m))
+                    adapter.add(m);
+            }
+            album.setFileCount(getCount());
+            if (getNothingToShowListener() != null)
+                getNothingToShowListener().changedNothingToShow(getCount() == 0);
+        });
+        albumsViewModel.getMediaLoadingState().observe(this, state -> {
+            if (state == LoadingState.Companion.getLOADED())
+                refresh.setRefreshing(false);
+            if (state.getMsg() != null) {
+                refresh.setRefreshing(false);
+                Toast.makeText(getContext(), state.getMsg(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
         reload();
     }
 

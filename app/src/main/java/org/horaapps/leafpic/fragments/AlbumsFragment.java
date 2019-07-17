@@ -34,11 +34,13 @@ import org.horaapps.leafpic.adapters.AlbumsAdapter;
 import org.horaapps.leafpic.data.Album;
 import org.horaapps.leafpic.data.AlbumExtsKt;
 import org.horaapps.leafpic.data.AlbumsHelper;
+import org.horaapps.leafpic.data.LoadingState;
 import org.horaapps.leafpic.data.MediaHelper;
 import org.horaapps.leafpic.data.Status;
 import org.horaapps.leafpic.data.StorageHelper;
 import org.horaapps.leafpic.data.sort.SortingMode;
 import org.horaapps.leafpic.data.sort.SortingOrder;
+import org.horaapps.leafpic.di.Injector;
 import org.horaapps.leafpic.progress.ProgressBottomSheet;
 import org.horaapps.leafpic.util.AlertDialogsHelper;
 import org.horaapps.leafpic.util.AnimationUtils;
@@ -103,6 +105,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
+        viewModelFactory = Injector.Companion.get().viewModelFactory();
         if (context instanceof AlbumClickListener) listener = (AlbumClickListener) context;
     }
 
@@ -121,28 +124,32 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
     private void displayAlbums() {
         adapter.clear();
-        albumsViewModel.setShowHidden(hidden);
-        albumsViewModel.getAlbums().observe(getViewLifecycleOwner(), listResource -> {
-            if (listResource.getStatus() == Status.SUCCESS && listResource.getData() != null) {
-                for (Album a : listResource.getData())
-                    adapter.add(a);
-
-                if (getNothingToShowListener() != null)
-                    getNothingToShowListener().changedNothingToShow(getCount() == 0);
-
-                Hawk.put(hidden ? "h" : "albums", adapter.getAlbumsPaths());
-
-                refresh.setRefreshing(false);
-            } else if (listResource.getStatus() == Status.ERROR) {
-                refresh.setRefreshing(false);
-            }
-        });
+        albumsViewModel.loadAlbums();
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel.class);
+        albumsViewModel.getAlbums().observe(getViewLifecycleOwner(), list -> {
+            for (Album a : list)
+                adapter.add(a);
+
+            if (getNothingToShowListener() != null)
+                getNothingToShowListener().changedNothingToShow(getCount() == 0);
+
+            Hawk.put(hidden ? "h" : "albums", adapter.getAlbumsPaths());
+
+            refresh.setRefreshing(false);
+        });
+        albumsViewModel.getAlbumsLoadingState().observe(getViewLifecycleOwner(), state -> {
+            if (state == LoadingState.Companion.getLOADED())
+                refresh.setRefreshing(false);
+            else if (state.getMsg() != null) {
+                refresh.setRefreshing(false);
+                Toast.makeText(getContext(), state.getMsg(), Toast.LENGTH_SHORT).show();
+            }
+        });
         displayAlbums();
     }
 

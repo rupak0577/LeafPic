@@ -13,12 +13,14 @@ import kotlinx.android.synthetic.main.fragment_timeline.*
 import org.horaapps.leafpic.R
 import org.horaapps.leafpic.SharedVM
 import org.horaapps.leafpic.data.Album
+import org.horaapps.leafpic.data.LoadingState
 import org.horaapps.leafpic.data.Media
 import org.horaapps.leafpic.data.filter.FilterMode
 import org.horaapps.leafpic.data.filter.MediaFilter
 import org.horaapps.leafpic.data.sort.MediaComparators
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
+import org.horaapps.leafpic.di.Injector
 import org.horaapps.leafpic.fragments.AlbumsViewModel
 import org.horaapps.leafpic.fragments.BaseMediaGridFragment
 import org.horaapps.leafpic.interfaces.MediaClickListener
@@ -72,6 +74,7 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
+        viewModelFactory = Injector.get().viewModelFactory()
         if (context is MediaClickListener) timelineListener = context
     }
 
@@ -100,6 +103,26 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel::class.java)
+        albumsViewModel.media.observe(viewLifecycleOwner, Observer { list ->
+            val mediaList = ArrayList<Media>()
+            list.forEach { media ->
+                if (MediaFilter.getFilter(filterMode).accept(media))
+                    mediaList.add(media)
+            }
+            contentAlbum.fileCount = mediaList.size
+            setAdapterMedia(mediaList)
+        })
+
+        albumsViewModel.mediaLoadingState.observe(viewLifecycleOwner, Observer { state ->
+            if (state == LoadingState.LOADED)
+                timeline_swipe_refresh_layout!!.isRefreshing = false
+            else if (state.msg != null) {
+                timeline_swipe_refresh_layout!!.isRefreshing = false
+                Toast.makeText(context, state.msg, Toast.LENGTH_SHORT).show()
+            }
+        })
 
         timeline_swipe_refresh_layout.setOnRefreshListener { this.loadAlbum() }
         setupRecyclerView()
@@ -253,21 +276,7 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
     }
 
     private fun loadAlbum() {
-        val mediaList = ArrayList<Media>()
         albumsViewModel.setAlbum(contentAlbum)
-        albumsViewModel.media.observe(viewLifecycleOwner, Observer<Resource<List<Media>>> {
-            if (it.status === Status.SUCCESS && it.data != null) {
-                for (m in it.data) {
-                    if (MediaFilter.getFilter(filterMode).accept(m))
-                        mediaList.add(m)
-                }
-                contentAlbum.fileCount = mediaList.size
-                timeline_swipe_refresh_layout!!.isRefreshing = false
-                setAdapterMedia(mediaList)
-            } else if (it.status === Status.ERROR) {
-                timeline_swipe_refresh_layout!!.isRefreshing = false
-            }
-        })
     }
 
     private fun setAdapterMedia(mediaList: ArrayList<Media>) {
