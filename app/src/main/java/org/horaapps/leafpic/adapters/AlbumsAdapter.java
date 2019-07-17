@@ -348,7 +348,7 @@ public class AlbumsAdapter extends ThemedAdapter<AlbumsAdapter.ViewHolder> {
 
     private void reverseOrder() {
         int z = 0, size = getItemCount();
-        while (z < size && albums.get(z).getAlbumInfo().getPinned())
+        while (z < size && albums.get(z).getAlbumInfo().isPinned())
             z++;
 
         for (int i = Math.max(0, z), mid = (i+size)>>1, j = size-1; i < mid; i++, j--)

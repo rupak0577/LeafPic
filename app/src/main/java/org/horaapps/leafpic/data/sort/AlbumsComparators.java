@@ -43,8 +43,8 @@ public class AlbumsComparators {
 
     private static Comparator<Album> getPinned() {
         return (o1, o2) -> {
-            if (o1.getAlbumInfo().getPinned() == o2.getAlbumInfo().getPinned()) return 0;
-            return o1.getAlbumInfo().getPinned() ? -1 : 1;
+            if (o1.getAlbumInfo().isPinned() == o2.getAlbumInfo().isPinned()) return 0;
+            return o1.getAlbumInfo().isPinned() ? -1 : 1;
         };
     }
 

@@ -8,7 +8,6 @@ import androidx.lifecycle.Transformations.switchMap
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import org.horaapps.leafpic.App
-import org.horaapps.leafpic.EXCLUDED
 import org.horaapps.leafpic.data.Album
 import org.horaapps.leafpic.data.AlbumRepository
 import org.horaapps.leafpic.data.LoadingState
@@ -20,11 +19,11 @@ import javax.inject.Inject
 class AlbumsViewModel @Inject constructor(private val application: App,
                                           private val albumRepository: AlbumRepository)
     : AndroidViewModel(application) {
-    private val _status = MutableLiveData<Int>()
+    private val _load = MutableLiveData<Boolean>()
     private val _album = MutableLiveData<Album>()
 
-    private val albumsResult = map(_status) { status ->
-        albumRepository.getAlbums(status)
+    private val albumsResult = map(_load) {
+        albumRepository.getAlbums()
     }
 
     private val mediaResult = map(_album) { album ->
@@ -47,13 +46,17 @@ class AlbumsViewModel @Inject constructor(private val application: App,
         it.loadingState
     }
 
-    fun setStatus(status: Int) {
-        if (_status.value != status) {
-            _status.value = status
-
-            viewModelScope.launch {
-                albumRepository.loadAlbums(application.contentResolver, SortingMode.DATE, SortingOrder.ASCENDING)
+    fun loadAlbums() {
+        if (_load.value == null)
+            _load.value = true
+        else {
+            _load.value?.let {
+                _load.value = it
             }
+        }
+
+        viewModelScope.launch {
+            albumRepository.loadAlbums(application.contentResolver, SortingMode.DATE, SortingOrder.ASCENDING)
         }
     }
 
@@ -69,7 +72,7 @@ class AlbumsViewModel @Inject constructor(private val application: App,
 
     fun setPinned(album: Album, pinned: Boolean) {
         viewModelScope.launch {
-            val newAlbum = album.copy(albumInfo = album.albumInfo.copy(pinned = pinned))
+            val newAlbum = album.copy(albumInfo = album.albumInfo.copy(isPinned = pinned))
             albumRepository.updateAlbum(newAlbum)
         }
     }
@@ -83,7 +86,7 @@ class AlbumsViewModel @Inject constructor(private val application: App,
 
     fun excludeAlbum(album: Album) {
         viewModelScope.launch {
-            val newAlbum = album.copy(albumInfo = album.albumInfo.copy(status = EXCLUDED))
+            val newAlbum = album.copy(albumInfo = album.albumInfo.copy(isExcluded = true))
             albumRepository.upsertAlbum(newAlbum)
         }
     }
@@ -92,7 +95,7 @@ class AlbumsViewModel @Inject constructor(private val application: App,
         viewModelScope.launch {
             val newAlbums = mutableListOf<Album>()
             albums.forEach { oldAlbum ->
-                newAlbums.add(oldAlbum.copy(albumInfo = oldAlbum.albumInfo.copy(status = EXCLUDED)))
+                newAlbums.add(oldAlbum.copy(albumInfo = oldAlbum.albumInfo.copy(isExcluded = true)))
             }
             albumRepository.upsertAlbums(newAlbums.toList())
         }

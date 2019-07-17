@@ -5,7 +5,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import org.horaapps.leafpic.EXCLUDED
 import org.horaapps.leafpic.data.provider.MediaStoreHelper
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
@@ -24,8 +23,8 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
         }
     }
 
-    fun getAlbums(status: Int): Listing<Album> {
-        return Listing(list = albumDao.getAlbumsWithStatusAsLiveData(status),
+    fun getAlbums(): Listing<Album> {
+        return Listing(list = albumDao.getIncludedAlbumsAsLiveData(),
                 loadingState = getLoadingState(true))
     }
 
@@ -34,7 +33,7 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
         albumLoadingState.value = LoadingState.LOADING
         try {
             coroutineScope {
-                val albumsFromDb = albumDao.getAlbumsWithStatus(EXCLUDED)
+                val albumsFromDb = albumDao.getExcludedAlbums()
                 val storeList = MediaStoreHelper.getAlbums(contentResolver, albumsFromDb,
                         sortingMode, sortingOrder)
 

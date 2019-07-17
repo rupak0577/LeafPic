@@ -268,7 +268,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
         if (oneSelected) {
             Album selectedAlbum = adapter.getFirstSelectedAlbum();
-            menu.findItem(R.id.pin_album).setTitle(selectedAlbum.getAlbumInfo().getPinned() ? getString(R.string.un_pin) : getString(R.string.pin));
+            menu.findItem(R.id.pin_album).setTitle(selectedAlbum.getAlbumInfo().isPinned() ? getString(R.string.un_pin) : getString(R.string.pin));
             menu.findItem(R.id.clear_album_cover).setVisible(selectedAlbum.getAlbumInfo().getCoverPath() != null);
         }
 
@@ -289,7 +289,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
             case R.id.pin_album:
                 if (selectedAlbum != null) {
-                    albumsViewModel.setPinned(selectedAlbum, !selectedAlbum.getAlbumInfo().getPinned());
+                    albumsViewModel.setPinned(selectedAlbum, !selectedAlbum.getAlbumInfo().isPinned());
                     adapter.clearSelected();
                     adapter.sort();
                 }
