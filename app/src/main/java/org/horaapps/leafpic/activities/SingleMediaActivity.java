@@ -84,6 +84,7 @@ import javax.inject.Inject;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
@@ -124,6 +125,8 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
     private boolean isSlideShowOn = false;
 
     private boolean useImageMenu;
+
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     public static void startActivity(@NonNull Context context,
                                      @Nullable Parcelable album,
@@ -497,7 +500,7 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
                             updatePageTitle(mViewPager.getCurrentItem());
                         });
 
-        disposeLater(disposable);
+        disposables.add(disposable);
 
 
     }
@@ -858,6 +861,7 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
         super.onDestroy();
         handler.removeCallbacks(slideShowRunnable);
         handler = null;
+        disposables.dispose();
     }
 }
 

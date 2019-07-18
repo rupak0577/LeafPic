@@ -29,7 +29,7 @@ fun shareMedia(context: Context, mediaList: List<Media>) {
             count = types[mimeType]!!
         }
         types[mimeType] = count
-        files.add(LegacyCompatFileProvider.getUri(context, f.file))
+        files.add(LegacyCompatFileProvider.getUri(context, f.getFile()))
     }
 
     val fileTypes = types.keys

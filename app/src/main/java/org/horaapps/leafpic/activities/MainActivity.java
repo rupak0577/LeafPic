@@ -40,6 +40,7 @@ import org.horaapps.leafpic.SharedVM;
 import org.horaapps.leafpic.about.AboutActivity;
 import org.horaapps.leafpic.activities.base.SharedMediaActivity;
 import org.horaapps.leafpic.data.Album;
+import org.horaapps.leafpic.data.AlbumExtsKt;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.fragments.AlbumsFragment;
 import org.horaapps.leafpic.fragments.EditModeListener;
@@ -572,11 +573,11 @@ public class MainActivity extends SharedMediaActivity implements
                 break;
 
             case NAVIGATION_ITEM_ALL_MEDIA:
-                displayMedia(Album.getAllMediaAlbum());
+                displayMedia(AlbumExtsKt.getAllMediaAlbum());
                 break;
 
             case NAVIGATION_ITEM_TIMELINE:
-                displayTimeline(Album.getAllMediaAlbum());
+                displayTimeline(AlbumExtsKt.getAllMediaAlbum());
                 selectNavigationItem(navigationItemSelected);
                 break;
 

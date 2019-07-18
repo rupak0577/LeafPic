@@ -42,14 +42,14 @@ public class LookForMediaJob extends JobService {
             @Override
             public void run() {
                 try {
-                    ArrayList<String> whiteList = new ArrayList<>(Injector.Companion.get()
-                            .albumRepository().getFolders(INCLUDED));
-                    for (String s : whiteList) {
-                        scanFolder(s);
-                        Log.wtf(TAG, "Scanned: " + s);
-                    }
-                    if(DEBUG)
-                        notification(whiteList);
+//                    ArrayList<String> whiteList = new ArrayList<>(Injector.Companion.get()
+//                            .albumRepository().getFolders(INCLUDED));
+//                    for (String s : whiteList) {
+//                        scanFolder(s);
+//                        Log.wtf(TAG, "Scanned: " + s);
+//                    }
+//                    if(DEBUG)
+//                        notification(whiteList);
                 } finally {
                     jobFinished(jobParameters, false);
                 }

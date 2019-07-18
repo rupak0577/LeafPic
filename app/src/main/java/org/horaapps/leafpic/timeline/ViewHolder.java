@@ -90,7 +90,7 @@ public class ViewHolder {
             gifIcon.setVisibility(mediaItem.isGif() ? View.VISIBLE : View.GONE);
 
             RequestOptions options = new RequestOptions()
-                    .signature(mediaItem.getSignature())
+//                    .signature(mediaItem.getSignature())
                     .format(DecodeFormat.PREFER_RGB_565)
                     .centerCrop()
                     .placeholder(placeholderImage)
