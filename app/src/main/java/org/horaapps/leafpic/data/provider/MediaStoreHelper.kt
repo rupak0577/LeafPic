@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.provider.MediaStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.horaapps.leafpic.data.ALL_MEDIA_ALBUM_ID
 import org.horaapps.leafpic.data.Album
 import org.horaapps.leafpic.data.AlbumInfo
 import org.horaapps.leafpic.data.Media
@@ -14,12 +15,15 @@ import org.horaapps.leafpic.data.sort.SortingOrder
 import org.horaapps.leafpic.util.MimeTypeUtils
 import org.horaapps.leafpic.util.StringUtils
 import org.horaapps.leafpic.util.preferences.Prefs
+import timber.log.Timber
 import java.io.File
 
 class MediaStoreHelper {
 
     companion object {
-        private const val ALL_MEDIA_ALBUM_ID: Long = 8000
+        private const val mediaType: String = MediaStore.Files.FileColumns.MEDIA_TYPE
+        private const val mediaTypeImage: Int = MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE
+        private const val mediaTypeVideo: Int = MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO
 
         private val albumProjection = arrayOf(MediaStore.Files.FileColumns.PARENT,
                 MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
@@ -31,7 +35,7 @@ class MediaStoreHelper {
                 MediaStore.Images.Media.DATE_TAKEN, MediaStore.Images.Media.MIME_TYPE,
                 MediaStore.Images.Media.SIZE, MediaStore.Images.Media.ORIENTATION)
 
-        suspend fun getAlbums(contentResolver: ContentResolver, excludedAlbums: List<Album>,
+        suspend fun getAlbums(contentResolver: ContentResolver, externalFilesDir: Array<File>, excludedAlbums: List<Album>,
                               sortingMode: SortingMode, sortingOrder: SortingOrder): List<Album> {
             return withContext(Dispatchers.IO) {
                 val query = Query.Builder()
@@ -40,32 +44,42 @@ class MediaStoreHelper {
                         .sort(sortingMode.albumsColumn)
                         .ascending(sortingOrder.isAscending)
 
-                val args = arrayListOf<Any>()
+                val selectionString = StringBuilder()
 
                 if (Prefs.showVideos()) {
-                    query.selection(String.format("%s=? or %s=?) group by (%s) %s ",
-                            MediaStore.Files.FileColumns.MEDIA_TYPE,
-                            MediaStore.Files.FileColumns.MEDIA_TYPE,
-                            MediaStore.Files.FileColumns.PARENT,
-                            getHavingClause(excludedAlbums.size)))
-                    args.add(MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE)
-                    args.add(MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO)
+                    selectionString.apply {
+                        append("$mediaType=$mediaTypeImage")
+                        append(" or ")
+                        append("$mediaType=$mediaTypeVideo")
+                        append(")")
+                    }
                 } else {
-                    query.selection(String.format("%s=?) group by (%s) %s ",
-                            MediaStore.Files.FileColumns.MEDIA_TYPE,
-                            MediaStore.Files.FileColumns.PARENT,
-                            getHavingClause(excludedAlbums.size)))
-                    args.add(MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE)
+                    selectionString.apply {
+                        append("$mediaType=$mediaTypeImage")
+                        append(")")
+                    }
+                }
+
+                val storageRoots = getStorageRoots(externalFilesDir)
+                selectionString.append(" group by (${MediaStore.Files.FileColumns.PARENT}) ")
+                        .append(getHavingClause(excludedAlbums.size + storageRoots.size))
+
+                query.selection(selectionString.toString())
+
+                // it has a lot of garbage
+                storageRoots.forEach {
+                    query.args(File(it.path, "Android").path)
                 }
 
                 //NOTE: LIKE params for query
                 excludedAlbums.forEach {
-                    args.add("${it.path}%")
+                    query.args("${it.path}%")
                 }
 
-                query.args(args.toArray())
+                val builtQuery = query.build()
+                Timber.i(builtQuery.toString())
 
-                val cursor: Cursor? = query.build().getCursor(contentResolver)
+                val cursor: Cursor? = builtQuery.getCursor(contentResolver)
                 mutableListOf<Album>().apply {
                     if (cursor != null && cursor.count > 0)
                         while (cursor.moveToNext())
@@ -91,20 +105,27 @@ class MediaStoreHelper {
                         .sort(album.albumInfo.sortingMode.mediaColumn)
                         .ascending(album.albumInfo.sortingOrder.isAscending)
 
+                val selectionString = StringBuilder()
+
                 if (Prefs.showVideos()) {
-                    query.selection(String.format("(%s=? or %s=?)",
-                            MediaStore.Files.FileColumns.MEDIA_TYPE,
-                            MediaStore.Files.FileColumns.MEDIA_TYPE))
-                    query.args(
-                            MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE,
-                            MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO)
+                    selectionString.apply {
+                        append("$mediaType=$mediaTypeImage")
+                        append(" or ")
+                        append("$mediaType=$mediaTypeVideo")
+                        append(")")
+                    }
                 } else {
-                    query.selection(String.format("%s=?",
-                            MediaStore.Files.FileColumns.MEDIA_TYPE))
-                    query.args(MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE)
+                    selectionString.apply {
+                        append("$mediaType=$mediaTypeImage") // to be closed by ContentResolver
+                    }
                 }
 
-                val cursor: Cursor? = query.build().getCursor(contentResolver)
+                query.selection(selectionString.toString())
+
+                val builtQuery = query.build()
+                Timber.i(builtQuery.toString())
+
+                val cursor: Cursor? = builtQuery.getCursor(contentResolver)
                 mutableListOf<Media>().apply {
                     if (cursor != null && cursor.count > 0)
                         while (cursor.moveToNext())
@@ -135,23 +156,33 @@ class MediaStoreHelper {
                         .sort(album.albumInfo.sortingMode.mediaColumn)
                         .ascending(album.albumInfo.sortingOrder.isAscending)
 
+                val selectionString = StringBuilder()
+
                 if (Prefs.showVideos()) {
-                    query.selection(String.format("(%s=? or %s=?) and %s=?",
-                            MediaStore.Files.FileColumns.MEDIA_TYPE,
-                            MediaStore.Files.FileColumns.MEDIA_TYPE,
-                            MediaStore.Files.FileColumns.PARENT))
-                    query.args(
-                            MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE,
-                            MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO,
-                            album.id)
+                    selectionString.apply {
+                        append("$mediaType=$mediaTypeImage")
+                        append(" or ")
+                        append("$mediaType=$mediaTypeVideo")
+                        append(")")
+                        append(" and ")
+                        append("(")
+                        append("${MediaStore.Files.FileColumns.PARENT}=${album.id}") // to be closed by ContentResolver
+                    }
                 } else {
-                    query.selection(String.format("%s=? and %s=?",
-                            MediaStore.Files.FileColumns.MEDIA_TYPE,
-                            MediaStore.Files.FileColumns.PARENT))
-                    query.args(MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE, album.id)
+                    selectionString.apply {
+                        append("$mediaType=$mediaTypeImage")
+                        append(" and ")
+                        append("(")
+                        append("${MediaStore.Files.FileColumns.PARENT}=${album.id}") // to be closed by ContentResolver
+                    }
                 }
 
-                val cursor: Cursor? = query.build().getCursor(contentResolver)
+                query.selection(selectionString.toString())
+
+                val builtQuery = query.build()
+                Timber.i(builtQuery.toString())
+
+                val cursor: Cursor? = builtQuery.getCursor(contentResolver)
                 mutableListOf<Media>().apply {
                     if (cursor != null && cursor.count > 0)
                         while (cursor.moveToNext())
@@ -162,9 +193,6 @@ class MediaStoreHelper {
         }
 
         private fun getHavingClause(excludedCount: Int): String {
-            if (excludedCount == 0)
-                return "("
-
             val res = StringBuilder()
             res.append("HAVING (")
 
@@ -201,6 +229,18 @@ class MediaStoreHelper {
             return Media(path = this.path, albumPath = albumPath, size = this.length(),
                     mimeType = MimeTypeUtils.getMimeType(this.path),
                     dateModified = this.lastModified())
+        }
+
+        private fun getStorageRoots(dir: Array<File>): Array<File> {
+            val paths = HashSet<File>()
+            for (file in dir) {
+                val index = file.absolutePath.lastIndexOf("/Android/data")
+                if (index < 0)
+                    Timber.w("Unexpected external file dir: %s", file.absolutePath)
+                else
+                    paths.add(File(file.absolutePath.substring(0, index)))
+            }
+            return paths.toTypedArray()
         }
     }
 }

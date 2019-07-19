@@ -8,6 +8,8 @@ import kotlinx.coroutines.launch
 import org.horaapps.leafpic.data.provider.MediaStoreHelper
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
+import timber.log.Timber
+import java.io.File
 import javax.inject.Inject
 
 class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
@@ -28,13 +30,13 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
                 loadingState = getLoadingState(true))
     }
 
-    suspend fun loadAlbums(contentResolver: ContentResolver, sortingMode: SortingMode,
+    suspend fun loadAlbums(contentResolver: ContentResolver, externalFilesDir: Array<File>, sortingMode: SortingMode,
                            sortingOrder: SortingOrder) {
         albumLoadingState.value = LoadingState.LOADING
         try {
             coroutineScope {
                 val albumsFromDb = albumDao.getExcludedAlbums()
-                val storeList = MediaStoreHelper.getAlbums(contentResolver, albumsFromDb,
+                val storeList = MediaStoreHelper.getAlbums(contentResolver, externalFilesDir, albumsFromDb,
                         sortingMode, sortingOrder)
 
                 launch {
@@ -43,6 +45,7 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
                 }
             }
         } catch (exception: Exception) {
+            Timber.e(exception)
             albumLoadingState.value = LoadingState.error(exception.message)
         }
     }
@@ -64,6 +67,7 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
                 }
             }
         } catch (exception: Exception) {
+            Timber.e(exception)
             mediaLoadingState.value = LoadingState.error(exception.message)
         }
     }

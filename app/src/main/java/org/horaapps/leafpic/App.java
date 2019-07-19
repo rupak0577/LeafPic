@@ -14,6 +14,8 @@ import org.horaapps.leafpic.di.DaggerAppComponent;
 import org.horaapps.leafpic.util.ApplicationUtils;
 import org.horaapps.leafpic.util.preferences.Prefs;
 
+import timber.log.Timber;
+
 /**
  * Created by dnld on 28/04/16.
  */
@@ -29,6 +31,9 @@ public class App extends MultiDexApplication {
         appComponent = DaggerAppComponent.builder().application(this).build();
 
         ApplicationUtils.init(this);
+
+        if (BuildConfig.DEBUG)
+            Timber.plant(new Timber.DebugTree());
 
         /** This process is dedicated to LeakCanary for heap analysis.
          *  You should not init your app in this process. */

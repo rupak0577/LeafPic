@@ -56,7 +56,8 @@ class AlbumsViewModel @Inject constructor(private val application: App,
         }
 
         viewModelScope.launch {
-            albumRepository.loadAlbums(application.contentResolver, SortingMode.DATE, SortingOrder.ASCENDING)
+            albumRepository.loadAlbums(application.contentResolver, application.getExternalFilesDirs("external"),
+                    SortingMode.DATE, SortingOrder.ASCENDING)
         }
     }
 
