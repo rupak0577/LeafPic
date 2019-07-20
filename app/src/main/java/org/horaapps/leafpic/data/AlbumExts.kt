@@ -1,19 +1,13 @@
 package org.horaapps.leafpic.data
 
+import org.horaapps.leafpic.util.StringUtils
 import java.io.File
 import java.util.*
 
 const val ALL_MEDIA_ALBUM_ID: Long = 8000
 
 fun getAllMediaAlbum(): Album {
-    return Album("", ALL_MEDIA_ALBUM_ID, "All Media", AlbumInfo())
-}
-
-fun Album.getCover(): Media? {
-    if (this.albumInfo.coverPath != null)
-        return Media(this.albumInfo.coverPath, this.path)
-    return this.lastMedia
-    // TODO: 11/20/16 how should i handle this?
+    return Album(123, "", "All Media", ALL_MEDIA_ALBUM_ID)
 }
 
 fun Album.getParentsFolders(): ArrayList<String> {

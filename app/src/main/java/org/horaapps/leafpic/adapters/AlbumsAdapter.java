@@ -272,7 +272,7 @@ public class AlbumsAdapter extends ThemedAdapter<AlbumsAdapter.ViewHolder> {
         Album a = albums.get(position);
         holder.refreshTheme(getThemeHelper(), cardViewStyle, a.isSelected());
 
-        Media f = AlbumExtsKt.getCover(a);
+        String coverPath = a.getAlbumInfo().getCoverPath();
 
         RequestOptions options = new RequestOptions()
 //                .signature(f.getSignature())
@@ -284,7 +284,7 @@ public class AlbumsAdapter extends ThemedAdapter<AlbumsAdapter.ViewHolder> {
                 .diskCacheStrategy(DiskCacheStrategy.RESOURCE);
 
         Glide.with(holder.picture.getContext())
-                .load(f.getPath())
+                .load(coverPath)
                 .apply(options)
                 .into(holder.picture);
 

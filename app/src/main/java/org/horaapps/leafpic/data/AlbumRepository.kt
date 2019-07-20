@@ -51,7 +51,7 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
     }
 
     fun getMedia(album: Album): Listing<Media> {
-        return Listing(list = mediaDao.getMediaForAlbum(albumPath = album.path),
+        return Listing(list = mediaDao.getMediaForAlbum(albumId = album.id),
                 loadingState = getLoadingState(false))
     }
 

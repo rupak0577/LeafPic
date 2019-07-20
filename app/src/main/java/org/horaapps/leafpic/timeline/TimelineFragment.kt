@@ -111,7 +111,6 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
                 if (MediaFilter.getFilter(filterMode).accept(media))
                     mediaList.add(media)
             }
-            contentAlbum.fileCount = mediaList.size
             setAdapterMedia(mediaList)
         })
 

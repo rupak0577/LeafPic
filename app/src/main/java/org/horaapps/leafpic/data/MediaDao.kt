@@ -6,6 +6,6 @@ import androidx.room.Query
 
 @Dao
 abstract class MediaDao : BaseDao<Media>() {
-    @Query("SELECT * FROM media WHERE album_path = :albumPath")
-    abstract fun getMediaForAlbum(albumPath: String): LiveData<List<Media>>
+    @Query("SELECT * FROM media WHERE album_id = :albumId")
+    abstract fun getMediaForAlbum(albumId: Long): LiveData<List<Media>>
 }

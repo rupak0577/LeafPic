@@ -29,10 +29,11 @@ class MediaStoreHelper {
                 MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
                 "count(*)",
                 MediaStore.Images.Media.DATA,
-                "max(" + MediaStore.Images.Media.DATE_MODIFIED + ")")
+                "max(" + MediaStore.Images.Media.DATE_MODIFIED + ")",
+                MediaStore.Images.Media.BUCKET_ID)
 
         private val mediaProjection = arrayOf(MediaStore.Images.Media.DATA,
-                MediaStore.Images.Media.DATE_TAKEN, MediaStore.Images.Media.MIME_TYPE,
+                MediaStore.Images.Media.DATE_MODIFIED, MediaStore.Images.Media.MIME_TYPE,
                 MediaStore.Images.Media.SIZE, MediaStore.Images.Media.ORIENTATION)
 
         suspend fun getAlbums(contentResolver: ContentResolver, externalFilesDir: Array<File>, excludedAlbums: List<Album>,
@@ -91,8 +92,8 @@ class MediaStoreHelper {
 
         suspend fun getMedia(contentResolver: ContentResolver, album: Album): List<Media> {
             return when {
-                album.id == -1L -> getMediaFromStorage(album)
-                album.id == ALL_MEDIA_ALBUM_ID -> getAllMediaFromMediaStore(contentResolver, album)
+                album.idxParent == -1L -> getMediaFromStorage(album)
+                album.idxParent == ALL_MEDIA_ALBUM_ID -> getAllMediaFromMediaStore(contentResolver, album)
                 else -> getMediaFromMediaStore(contentResolver, album)
             }
         }
@@ -129,7 +130,7 @@ class MediaStoreHelper {
                 mutableListOf<Media>().apply {
                     if (cursor != null && cursor.count > 0)
                         while (cursor.moveToNext())
-                            add(cursor.toMedia(albumPath = album.path))
+                            add(cursor.toMedia(albumId = album.id))
                     cursor?.close()
                 }
             }
@@ -142,7 +143,7 @@ class MediaStoreHelper {
                         .listFiles(ImageFileFilter(Prefs.showVideos()))
                         ?.let {
                             for (file in it)
-                                list.add(file.toMedia(albumPath = album.path))
+                                list.add(file.toMedia(albumId = album.id))
                         }
                 list
             }
@@ -166,14 +167,14 @@ class MediaStoreHelper {
                         append(")")
                         append(" and ")
                         append("(")
-                        append("${MediaStore.Files.FileColumns.PARENT}=${album.id}") // to be closed by ContentResolver
+                        append("${MediaStore.Files.FileColumns.PARENT}=${album.idxParent}") // to be closed by ContentResolver
                     }
                 } else {
                     selectionString.apply {
                         append("$mediaType=$mediaTypeImage")
                         append(" and ")
                         append("(")
-                        append("${MediaStore.Files.FileColumns.PARENT}=${album.id}") // to be closed by ContentResolver
+                        append("${MediaStore.Files.FileColumns.PARENT}=${album.idxParent}") // to be closed by ContentResolver
                     }
                 }
 
@@ -186,7 +187,7 @@ class MediaStoreHelper {
                 mutableListOf<Media>().apply {
                     if (cursor != null && cursor.count > 0)
                         while (cursor.moveToNext())
-                            add(cursor.toMedia(albumPath = album.path))
+                            add(cursor.toMedia(albumId = album.id))
                     cursor?.close()
                 }
             }
@@ -210,23 +211,23 @@ class MediaStoreHelper {
         }
 
         private fun Cursor.toAlbum(): Album {
-            val album = Album(path = StringUtils.getBucketPathByImagePath(this.getString(3)),
+            return Album(id = this.getString(4).toLong(),
+                    path = StringUtils.getBucketPathByImagePath(this.getString(3)),
                     albumName = this.getString(1),
-                    id = this.getLong(0),
-                    albumInfo = AlbumInfo(dateModified = this.getLong(4)))
-            album.fileCount = this.getInt(2)
-            album.lastMedia = Media(this.getString(3), album.path)
-            return album
+                    idxParent = this.getLong(0),
+                    fileCount = this.getInt(2),
+                    albumInfo = AlbumInfo(dateModified = this.getLong(4),
+                            coverPath = this.getString(3)))
         }
 
-        private fun Cursor.toMedia(albumPath: String): Media {
-            return Media(path = getString(0), albumPath = albumPath, size = getLong(3),
+        private fun Cursor.toMedia(albumId: Long): Media {
+            return Media(path = getString(0), albumId = albumId, size = getLong(3),
                     mimeType = getString(2), dateModified = getLong(1),
                     orientation = getInt(4))
         }
 
-        private fun File.toMedia(albumPath: String): Media {
-            return Media(path = this.path, albumPath = albumPath, size = this.length(),
+        private fun File.toMedia(albumId: Long): Media {
+            return Media(path = this.path, albumId = albumId, size = this.length(),
                     mimeType = MimeTypeUtils.getMimeType(this.path),
                     dateModified = this.lastModified())
         }

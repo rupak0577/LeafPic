@@ -182,7 +182,6 @@ public class RvMediaFragment extends BaseMediaGridFragment {
                 if (MediaFilter.getFilter(album.getFilterMode()).accept(m))
                     adapter.add(m);
             }
-            album.setFileCount(getCount());
             if (getNothingToShowListener() != null)
                 getNothingToShowListener().changedNothingToShow(getCount() == 0);
         });

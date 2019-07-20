@@ -6,18 +6,20 @@ import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
 
 @Entity(tableName = "albums",
-        indices = [Index("path", unique = true)])
+        indices = [Index("id", unique = true)])
 data class Album(
         @PrimaryKey
+        @ColumnInfo(name = "id") val id: Long,
         @ColumnInfo(name = "path") val path: String,
-        @ColumnInfo(name = "id") val id: Long = -1,
         @ColumnInfo(name = "album_name") val albumName: String,
-        @Embedded val albumInfo: AlbumInfo
+        @ColumnInfo(name = "idx_parent") val idxParent: Long = -1,
+        @ColumnInfo(name = "file_count") val fileCount: Int = -1,
+        @Embedded val albumInfo: AlbumInfo = AlbumInfo()
 ) {
-    @Ignore var isSelected: Boolean = false
-    @Ignore var lastMedia: Media? = null
-    @Ignore var filterMode: FilterMode = FilterMode.ALL
-    @Ignore var fileCount: Int = -1
+    @Ignore
+    var isSelected: Boolean = false
+    @Ignore
+    var filterMode: FilterMode = FilterMode.ALL
 
     fun toggleSelected(): Boolean {
         isSelected = !isSelected

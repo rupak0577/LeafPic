@@ -9,13 +9,13 @@ import org.horaapps.leafpic.util.StringUtils
 import java.io.File
 
 @Entity(tableName = "media",
-        foreignKeys = [ForeignKey(entity = Album::class, parentColumns = arrayOf("path"),
-                childColumns = arrayOf("album_path"), onDelete = CASCADE, onUpdate = CASCADE)],
-        indices = [Index("path", unique = true), Index("album_path")])
+        foreignKeys = [ForeignKey(entity = Album::class, parentColumns = arrayOf("id"),
+                childColumns = arrayOf("album_id"), onDelete = CASCADE, onUpdate = CASCADE)],
+        indices = [Index("path", unique = true), Index("album_id", unique = false)])
 data class Media(
         @PrimaryKey
         @ColumnInfo(name = "path") val path: String,
-        @ColumnInfo(name = "album_path") val albumPath: String,
+        @ColumnInfo(name = "album_id") val albumId: Long,
         @ColumnInfo(name = "size") val size: Long = -1,
         @ColumnInfo(name = "mime_type") val mimeType: String = MimeTypeUtils.UNKNOWN_MIME_TYPE,
         @ColumnInfo(name = "date_modified") val dateModified: Long = -1,
