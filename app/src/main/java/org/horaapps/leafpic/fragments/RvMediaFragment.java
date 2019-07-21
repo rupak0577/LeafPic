@@ -37,6 +37,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.mikepenz.google_material_typeface_library.GoogleMaterial;
 
+import org.horaapps.leafpic.MediaViewModel;
 import org.horaapps.leafpic.R;
 import org.horaapps.leafpic.SharedVM;
 import org.horaapps.leafpic.activities.PaletteActivity;
@@ -91,7 +92,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     @Inject
     ViewModelProvider.Factory viewModelFactory;
 
-    private AlbumsViewModel albumsViewModel;
+    private MediaViewModel mediaViewModel;
 
     private MediaAdapter adapter;
     private GridSpacingItemDecoration spacingDecoration;
@@ -133,7 +134,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     private void loadAlbum(Album album) {
         this.album = album;
         adapter.setupFor(album);
-        albumsViewModel.setAlbum(album);
+        mediaViewModel.setAlbum(album);
     }
 
     @Override
@@ -175,9 +176,9 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel.class);
+        mediaViewModel = ViewModelProviders.of(this, viewModelFactory).get(MediaViewModel.class);
 
-        albumsViewModel.getMedia().observe(getViewLifecycleOwner(), list -> {
+        mediaViewModel.getMedia().observe(getViewLifecycleOwner(), list -> {
             for (Media m : list) {
                 if (MediaFilter.getFilter(album.getFilterMode()).accept(m))
                     adapter.add(m);
@@ -185,7 +186,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
             if (getNothingToShowListener() != null)
                 getNothingToShowListener().changedNothingToShow(getCount() == 0);
         });
-        albumsViewModel.getMediaLoadingState().observe(this, state -> {
+        mediaViewModel.getMediaLoadingState().observe(this, state -> {
             if (state == LoadingState.Companion.getLOADED())
                 refresh.setRefreshing(false);
             if (state.getMsg() != null) {
@@ -333,7 +334,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
             case R.id.set_as_cover:
                 String path = adapter.getFirstSelected().getPath();
-                albumsViewModel.setCover(album, path);
+                mediaViewModel.setCover(album, path);
                 adapter.clearSelected();
                 return true;
 
@@ -372,25 +373,25 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
             case R.id.name_sort_mode:
                 adapter.changeSortingMode(SortingMode.NAME);
-                albumsViewModel.setSortingMode(album, SortingMode.NAME);
+                mediaViewModel.setSortingMode(album, SortingMode.NAME);
                 item.setChecked(true);
                 return true;
 
             case R.id.date_taken_sort_mode:
                 adapter.changeSortingMode(SortingMode.DATE);
-                albumsViewModel.setSortingMode(album, SortingMode.DATE);
+                mediaViewModel.setSortingMode(album, SortingMode.DATE);
                 item.setChecked(true);
                 return true;
 
             case R.id.size_sort_mode:
                 adapter.changeSortingMode(SortingMode.SIZE);
-                albumsViewModel.setSortingMode(album, SortingMode.SIZE);
+                mediaViewModel.setSortingMode(album, SortingMode.SIZE);
                 item.setChecked(true);
                 return true;
 
             case R.id.numeric_sort_mode:
                 adapter.changeSortingMode(SortingMode.NUMERIC);
-                albumsViewModel.setSortingMode(album, SortingMode.NUMERIC);
+                mediaViewModel.setSortingMode(album, SortingMode.NUMERIC);
                 item.setChecked(true);
                 return true;
 
@@ -398,7 +399,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
                 item.setChecked(!item.isChecked());
                 SortingOrder sortingOrder = SortingOrder.fromValue(item.isChecked());
                 adapter.changeSortingOrder(sortingOrder);
-                albumsViewModel.setSortingMode(album, sortingOrder);
+                mediaViewModel.setSortingMode(album, sortingOrder);
                 return true;
 
             case R.id.delete:

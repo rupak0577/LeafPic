@@ -46,6 +46,7 @@ import com.mikepenz.google_material_typeface_library.GoogleMaterial;
 import com.orhanobut.hawk.Hawk;
 import com.yalantis.ucrop.UCrop;
 
+import org.horaapps.leafpic.MediaViewModel;
 import org.horaapps.leafpic.R;
 import org.horaapps.leafpic.SelectAlbumBuilder;
 import org.horaapps.leafpic.SharedVM;
@@ -59,7 +60,6 @@ import org.horaapps.leafpic.data.StorageHelper;
 import org.horaapps.leafpic.data.filter.MediaFilter;
 import org.horaapps.leafpic.data.sort.MediaComparators;
 import org.horaapps.leafpic.di.Injector;
-import org.horaapps.leafpic.fragments.AlbumsViewModel;
 import org.horaapps.leafpic.fragments.BaseMediaFragment;
 import org.horaapps.leafpic.fragments.ImageFragment;
 import org.horaapps.leafpic.util.AlertDialogsHelper;
@@ -114,7 +114,7 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
     @Inject
     ViewModelProvider.Factory viewModelFactory;
 
-    private AlbumsViewModel albumsViewModel;
+    private MediaViewModel mediaViewModel;
 
     private boolean fullScreenMode, customUri = false;
     private int position;
@@ -176,7 +176,7 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
         }
 
         viewModelFactory = Injector.Companion.get().viewModelFactory();
-        albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel.class);
+        mediaViewModel = ViewModelProviders.of(this, viewModelFactory).get(MediaViewModel.class);
 
         adapter = new MediaPagerAdapter(getSupportFragmentManager(), media, this);
         initUi();
@@ -203,8 +203,8 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
         media.add(m);
         position = 0;
 
-        albumsViewModel.setAlbum(album);
-        albumsViewModel.getMedia().observe(this, mediaList -> {
+        mediaViewModel.setAlbum(album);
+        mediaViewModel.getMedia().observe(this, mediaList -> {
             ArrayList<Media> list = new ArrayList<>();
             for (Media ma : mediaList) {
                 if (MediaFilter.getFilter(album.getFilterMode()).accept(ma) && !ma.equals(m)) {
@@ -227,7 +227,7 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
 
             updatePageTitle(position);
         });
-        albumsViewModel.getMediaLoadingState().observe(this, state -> {
+        mediaViewModel.getMediaLoadingState().observe(this, state -> {
             if (state.getMsg() != null) {
                 Toast.makeText(this, state.getMsg(), Toast.LENGTH_SHORT).show();
             }

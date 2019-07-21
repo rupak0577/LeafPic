@@ -10,6 +10,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import kotlinx.android.synthetic.main.fragment_timeline.*
+import org.horaapps.leafpic.MediaViewModel
 import org.horaapps.leafpic.R
 import org.horaapps.leafpic.SharedVM
 import org.horaapps.leafpic.data.Album
@@ -21,7 +22,6 @@ import org.horaapps.leafpic.data.sort.MediaComparators
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
 import org.horaapps.leafpic.di.Injector
-import org.horaapps.leafpic.fragments.AlbumsViewModel
 import org.horaapps.leafpic.fragments.BaseMediaGridFragment
 import org.horaapps.leafpic.interfaces.MediaClickListener
 import org.horaapps.leafpic.items.ActionsListener
@@ -57,7 +57,7 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
     @Inject
     internal lateinit var viewModelFactory: ViewModelProvider.Factory
 
-    private lateinit var albumsViewModel: AlbumsViewModel
+    private lateinit var mediaViewModel: MediaViewModel
 
     private lateinit var timelineAdapter: TimelineAdapter
     private lateinit var timelineListener: MediaClickListener
@@ -104,8 +104,8 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel::class.java)
-        albumsViewModel.media.observe(viewLifecycleOwner, Observer { list ->
+        mediaViewModel = ViewModelProviders.of(this, viewModelFactory).get(MediaViewModel::class.java)
+        mediaViewModel.media.observe(viewLifecycleOwner, Observer { list ->
             val mediaList = ArrayList<Media>()
             list.forEach { media ->
                 if (MediaFilter.getFilter(filterMode).accept(media))
@@ -114,7 +114,7 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
             setAdapterMedia(mediaList)
         })
 
-        albumsViewModel.mediaLoadingState.observe(viewLifecycleOwner, Observer { state ->
+        mediaViewModel.mediaLoadingState.observe(viewLifecycleOwner, Observer { state ->
             if (state == LoadingState.LOADED)
                 timeline_swipe_refresh_layout!!.isRefreshing = false
             else if (state.msg != null) {
@@ -275,7 +275,7 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
     }
 
     private fun loadAlbum() {
-        albumsViewModel.setAlbum(contentAlbum)
+        mediaViewModel.setAlbum(contentAlbum)
     }
 
     private fun setAdapterMedia(mediaList: ArrayList<Media>) {
