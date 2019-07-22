@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import org.horaapps.leafpic.App
 import org.horaapps.leafpic.data.Album
 import org.horaapps.leafpic.data.AlbumRepository
+import org.horaapps.leafpic.data.DoubleTrigger
 import org.horaapps.leafpic.data.LoadingState
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
@@ -18,10 +19,12 @@ import javax.inject.Inject
 class AlbumsViewModel @Inject constructor(private val application: App,
                                           private val albumRepository: AlbumRepository)
     : AndroidViewModel(application) {
-    private val _load = MutableLiveData<Boolean>()
+    private val _sortingMode = MutableLiveData<SortingMode>()
+    private val _sortingOrder = MutableLiveData<SortingOrder>()
 
-    private val albumsResult = map(_load) {
-        albumRepository.getAlbums()
+    private val albumsResult = map(DoubleTrigger(_sortingMode, _sortingOrder)) {
+        albumRepository.getAlbums(it.first ?: SortingMode.DATE,
+                it.second ?: SortingOrder.DESCENDING)
     }
 
     val albums: LiveData<List<Album>> = switchMap(albumsResult) {
@@ -32,18 +35,18 @@ class AlbumsViewModel @Inject constructor(private val application: App,
         it.loadingState
     }
 
-    fun loadAlbums() {
-        if (_load.value == null)
-            _load.value = true
-        else {
-            _load.value?.let {
-                _load.value = it
-            }
-        }
+    fun loadAlbums(sortingMode: SortingMode, sortingOrder: SortingOrder) {
+        if (_sortingMode.value != sortingMode)
+            _sortingMode.value = sortingMode
+        if (_sortingOrder.value != sortingOrder)
+            _sortingOrder.value = sortingOrder
+    }
 
+    fun refreshAlbums() {
         viewModelScope.launch {
             albumRepository.loadAlbums(application.contentResolver, application.getExternalFilesDirs("external"),
-                    SortingMode.DATE, SortingOrder.ASCENDING)
+                    _sortingMode.value ?: SortingMode.DATE,
+                    _sortingOrder.value ?: SortingOrder.DESCENDING)
         }
     }
 

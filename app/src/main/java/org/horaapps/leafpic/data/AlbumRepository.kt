@@ -25,9 +25,30 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
         }
     }
 
-    fun getAlbums(): Listing<Album> {
-        return Listing(list = albumDao.getIncludedAlbumsAsLiveData(),
-                loadingState = getLoadingState(true))
+    fun getAlbums(sortingMode: SortingMode, sortingOrder: SortingOrder): Listing<Album> {
+        when(sortingMode) {
+            SortingMode.NAME -> return when (sortingOrder) {
+                SortingOrder.ASCENDING -> Listing(list = albumDao.getIncludedAlbumsSyncSortedByNameAsc(),
+                        loadingState = getLoadingState(true))
+                SortingOrder.DESCENDING -> Listing(list = albumDao.getIncludedAlbumsSyncSortedByNameDesc(),
+                        loadingState = getLoadingState(true))
+            }
+            SortingMode.DATE -> return when (sortingOrder) {
+                SortingOrder.ASCENDING -> Listing(list = albumDao.getIncludedAlbumsSyncSortedByDateAsc(),
+                        loadingState = getLoadingState(true))
+                SortingOrder.DESCENDING -> Listing(list = albumDao.getIncludedAlbumsSyncSortedByDateDesc(),
+                        loadingState = getLoadingState(true))
+            }
+            SortingMode.SIZE -> return when (sortingOrder) {
+                SortingOrder.ASCENDING -> Listing(list = albumDao.getIncludedAlbumsSyncSortedBySizeAsc(),
+                        loadingState = getLoadingState(true))
+                SortingOrder.DESCENDING -> Listing(list = albumDao.getIncludedAlbumsSyncSortedBySizeDesc(),
+                        loadingState = getLoadingState(true))
+            }
+            else -> return Listing(list = albumDao.getIncludedAlbumsSyncSortedByNameAsc(),
+                    loadingState = getLoadingState(true))
+        }
+
     }
 
     suspend fun loadAlbums(contentResolver: ContentResolver, externalFilesDir: Array<File>, sortingMode: SortingMode,
