@@ -15,6 +15,7 @@ import java.io.File
 data class Media(
         @PrimaryKey
         @ColumnInfo(name = "path") val path: String,
+        @ColumnInfo(name = "name") val name: String,
         @ColumnInfo(name = "album_id") val albumId: Long,
         @ColumnInfo(name = "size") val size: Long = -1,
         @ColumnInfo(name = "mime_type") val mimeType: String = MimeTypeUtils.UNKNOWN_MIME_TYPE,
@@ -46,10 +47,6 @@ data class Media(
 
     fun getDisplayPath(): String? {
         return getUri()?.encodedPath ?: path
-    }
-
-    fun getName(): String {
-        return StringUtils.getPhotoNameByPath(path)
     }
 
     fun toggleSelected(): Boolean {

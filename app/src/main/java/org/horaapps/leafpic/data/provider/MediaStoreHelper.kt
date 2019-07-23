@@ -221,13 +221,15 @@ class MediaStoreHelper {
         }
 
         private fun Cursor.toMedia(albumId: Long): Media {
-            return Media(path = getString(0), albumId = albumId, size = getLong(3),
+            return Media(path = getString(0), name = StringUtils.getPhotoNameByPath(getString(0)),
+                    albumId = albumId, size = getLong(3),
                     mimeType = getString(2), dateModified = getLong(1),
                     orientation = getInt(4))
         }
 
         private fun File.toMedia(albumId: Long): Media {
-            return Media(path = this.path, albumId = albumId, size = this.length(),
+            return Media(path = this.path, name = StringUtils.getPhotoNameByPath(this.path),
+                    albumId = albumId, size = this.length(),
                     mimeType = MimeTypeUtils.getMimeType(this.path),
                     dateModified = this.lastModified())
         }

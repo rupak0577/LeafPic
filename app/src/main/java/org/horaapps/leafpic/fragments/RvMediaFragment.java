@@ -97,6 +97,9 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     private MediaAdapter adapter;
     private GridSpacingItemDecoration spacingDecoration;
 
+    private SortingMode sortingMode;
+    private SortingOrder sortingOrder;
+
     private Album album;
 
     @Override
@@ -134,7 +137,8 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     private void loadAlbum(Album album) {
         this.album = album;
         adapter.setupFor(album);
-        mediaViewModel.setAlbum(album);
+        mediaViewModel.refreshMedia(album);
+        mediaViewModel.loadMedia(album, sortingMode(), sortingOrder());
     }
 
     @Override
@@ -239,11 +243,15 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     }
 
     public SortingMode sortingMode() {
-        return album.getAlbumInfo().getSortingMode();
+        if (sortingMode == null)
+            sortingMode = album.getAlbumInfo().getSortingMode();
+        return sortingMode;
     }
 
     public SortingOrder sortingOrder() {
-        return album.getAlbumInfo().getSortingOrder();
+        if (sortingOrder == null)
+            sortingOrder = album.getAlbumInfo().getSortingOrder();
+        return sortingOrder;
     }
 
     private AlbumRepository db() {
@@ -373,33 +381,34 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
             case R.id.name_sort_mode:
                 adapter.changeSortingMode(SortingMode.NAME);
-                mediaViewModel.setSortingMode(album, SortingMode.NAME);
+                sortingMode = SortingMode.NAME;
+                mediaViewModel.setSortOptions(sortingMode, sortingOrder);
                 item.setChecked(true);
                 return true;
 
             case R.id.date_taken_sort_mode:
                 adapter.changeSortingMode(SortingMode.DATE);
-                mediaViewModel.setSortingMode(album, SortingMode.DATE);
+                sortingMode = SortingMode.DATE;
+                mediaViewModel.setSortOptions(sortingMode, sortingOrder);
                 item.setChecked(true);
                 return true;
 
             case R.id.size_sort_mode:
                 adapter.changeSortingMode(SortingMode.SIZE);
-                mediaViewModel.setSortingMode(album, SortingMode.SIZE);
+                sortingMode = SortingMode.SIZE;
+                mediaViewModel.setSortOptions(sortingMode, sortingOrder);
                 item.setChecked(true);
                 return true;
 
             case R.id.numeric_sort_mode:
-                adapter.changeSortingMode(SortingMode.NUMERIC);
-                mediaViewModel.setSortingMode(album, SortingMode.NUMERIC);
-                item.setChecked(true);
+                // remove option
                 return true;
 
             case R.id.ascending_sort_order:
                 item.setChecked(!item.isChecked());
-                SortingOrder sortingOrder = SortingOrder.fromValue(item.isChecked());
+                sortingOrder = SortingOrder.fromValue(item.isChecked());
                 adapter.changeSortingOrder(sortingOrder);
-                mediaViewModel.setSortingMode(album, sortingOrder);
+                mediaViewModel.setSortOptions(sortingMode, sortingOrder);
                 return true;
 
             case R.id.delete:

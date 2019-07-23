@@ -71,9 +71,35 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
         }
     }
 
-    fun getMedia(album: Album): Listing<Media> {
-        return Listing(list = mediaDao.getMediaForAlbum(albumId = album.id),
-                loadingState = getLoadingState(false))
+    fun getMedia(albumId: Long, sortingMode: SortingMode, sortingOrder: SortingOrder): Listing<Media> {
+        when(sortingMode) {
+            SortingMode.NAME -> return when (sortingOrder) {
+                SortingOrder.ASCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByNameAsc(albumId),
+                        loadingState = getLoadingState(false))
+                SortingOrder.DESCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByNameDesc(albumId),
+                        loadingState = getLoadingState(false))
+            }
+            SortingMode.DATE -> return when (sortingOrder) {
+                SortingOrder.ASCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByDateAsc(albumId),
+                        loadingState = getLoadingState(false))
+                SortingOrder.DESCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByDateDesc(albumId),
+                        loadingState = getLoadingState(false))
+            }
+            SortingMode.SIZE -> return when (sortingOrder) {
+                SortingOrder.ASCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedBySizeAsc(albumId),
+                        loadingState = getLoadingState(false))
+                SortingOrder.DESCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedBySizeDesc(albumId),
+                        loadingState = getLoadingState(false))
+            }
+            SortingMode.TYPE -> return when (sortingOrder) {
+                SortingOrder.ASCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByTypeAsc(albumId),
+                        loadingState = getLoadingState(false))
+                SortingOrder.DESCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByTypeDesc(albumId),
+                        loadingState = getLoadingState(false))
+            }
+            else -> return Listing(list = mediaDao.getMediaForAlbumSyncSortedByDateDesc(albumId),
+                    loadingState = getLoadingState(false))
+        }
     }
 
     suspend fun loadMedia(contentResolver: ContentResolver, album: Album) {

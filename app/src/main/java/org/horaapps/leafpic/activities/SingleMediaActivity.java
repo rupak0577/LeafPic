@@ -203,7 +203,8 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
         media.add(m);
         position = 0;
 
-        mediaViewModel.setAlbum(album);
+        mediaViewModel.refreshMedia(album);
+        mediaViewModel.loadMedia(album, album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder());
         mediaViewModel.getMedia().observe(this, mediaList -> {
             ArrayList<Media> list = new ArrayList<>();
             for (Media ma : mediaList) {
