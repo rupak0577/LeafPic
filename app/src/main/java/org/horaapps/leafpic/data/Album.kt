@@ -2,10 +2,7 @@ package org.horaapps.leafpic.data
 
 import android.os.Bundle
 import androidx.room.*
-import org.horaapps.leafpic.adapters.*
 import org.horaapps.leafpic.data.filter.FilterMode
-import org.horaapps.leafpic.data.sort.SortingMode
-import org.horaapps.leafpic.data.sort.SortingOrder
 
 const val PK_ALBUM_NAME = "ALBUM_NAME"
 const val PK_ALBUM_FILE_COUNT = "FILE_COUNT"
@@ -67,7 +64,5 @@ data class AlbumInfo(
         @ColumnInfo(name = "is_hidden") val isHidden: Boolean = false,
         @ColumnInfo(name = "is_pinned") val isPinned: Boolean = false,
         @ColumnInfo(name = "date_modified") val dateModified: Long = -1,
-        @ColumnInfo(name = "cover_path") val coverPath: String? = null,
-        @ColumnInfo(name = "sorting_mode") val sortingMode: SortingMode = SortingMode.DATE,
-        @ColumnInfo(name = "sorting_order") val sortingOrder: SortingOrder = SortingOrder.ASCENDING
+        @ColumnInfo(name = "cover_path") val coverPath: String? = null
 )

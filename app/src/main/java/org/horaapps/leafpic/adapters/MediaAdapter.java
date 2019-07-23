@@ -317,8 +317,8 @@ public class MediaAdapter extends ThemedAdapter<MediaAdapter.ViewHolder> {
 
     public void setupFor(Album album) {
         media.clear();
-        changeSortingMode(album.getAlbumInfo().getSortingMode());
-        changeSortingOrder(album.getAlbumInfo().getSortingOrder());
+        changeSortingMode(SortingMode.DATE);
+        changeSortingOrder(SortingOrder.DESCENDING);
         notifyDataSetChanged();
     }
 

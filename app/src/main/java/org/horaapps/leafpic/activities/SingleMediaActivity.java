@@ -59,6 +59,8 @@ import org.horaapps.leafpic.data.MediaHelper;
 import org.horaapps.leafpic.data.StorageHelper;
 import org.horaapps.leafpic.data.filter.MediaFilter;
 import org.horaapps.leafpic.data.sort.MediaComparators;
+import org.horaapps.leafpic.data.sort.SortingMode;
+import org.horaapps.leafpic.data.sort.SortingOrder;
 import org.horaapps.leafpic.di.Injector;
 import org.horaapps.leafpic.fragments.BaseMediaFragment;
 import org.horaapps.leafpic.fragments.ImageFragment;
@@ -204,19 +206,19 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
         position = 0;
 
         mediaViewModel.refreshMedia(album);
-        mediaViewModel.loadMedia(album, album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder());
+        mediaViewModel.loadMedia(album, SortingMode.DATE, SortingOrder.DESCENDING);
         mediaViewModel.getMedia().observe(this, mediaList -> {
             ArrayList<Media> list = new ArrayList<>();
             for (Media ma : mediaList) {
                 if (MediaFilter.getFilter(album.getFilterMode()).accept(ma) && !ma.equals(m)) {
                     int i = Collections.binarySearch(
-                            list, ma, MediaComparators.getComparator(album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder()));
+                            list, ma, MediaComparators.getComparator(SortingMode.DATE, SortingOrder.DESCENDING));
                     if (i < 0) i = ~i;
                     list.add(i, ma);
                 }
             }
             int i = Collections.binarySearch(
-                    list, m, MediaComparators.getComparator(album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder()));
+                    list, m, MediaComparators.getComparator(SortingMode.DATE, SortingOrder.DESCENDING));
             if (i < 0) i = ~i;
 
             list.add(i, m);

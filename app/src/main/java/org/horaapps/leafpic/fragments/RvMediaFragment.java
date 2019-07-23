@@ -169,7 +169,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
                         new LandingAnimator(new OvershootInterpolator(1f))
                 ));
 
-        adapter = new MediaAdapter(getContext(), album.getAlbumInfo().getSortingMode(), album.getAlbumInfo().getSortingOrder(), this);
+        adapter = new MediaAdapter(getContext(), SortingMode.DATE, SortingOrder.DESCENDING, this);
 
         refresh.setOnRefreshListener(this::reload);
         rv.setAdapter(adapter);
@@ -244,13 +244,13 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
     public SortingMode sortingMode() {
         if (sortingMode == null)
-            sortingMode = album.getAlbumInfo().getSortingMode();
+            sortingMode = SortingMode.DATE;
         return sortingMode;
     }
 
     public SortingOrder sortingOrder() {
         if (sortingOrder == null)
-            sortingOrder = album.getAlbumInfo().getSortingOrder();
+            sortingOrder = SortingOrder.DESCENDING;
         return sortingOrder;
     }
 

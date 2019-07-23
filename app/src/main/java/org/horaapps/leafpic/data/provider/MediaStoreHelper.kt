@@ -103,8 +103,6 @@ class MediaStoreHelper {
                 val query = Query.Builder()
                         .uri(MediaStore.Files.getContentUri("external"))
                         .projection(mediaProjection)
-                        .sort(album.albumInfo.sortingMode.mediaColumn)
-                        .ascending(album.albumInfo.sortingOrder.isAscending)
 
                 val selectionString = StringBuilder()
 
@@ -154,8 +152,6 @@ class MediaStoreHelper {
                 val query = Query.Builder()
                         .uri(MediaStore.Files.getContentUri("external"))
                         .projection(mediaProjection)
-                        .sort(album.albumInfo.sortingMode.mediaColumn)
-                        .ascending(album.albumInfo.sortingOrder.isAscending)
 
                 val selectionString = StringBuilder()
 

@@ -2,7 +2,10 @@ package org.horaapps.leafpic
 
 import androidx.lifecycle.*
 import kotlinx.coroutines.launch
-import org.horaapps.leafpic.data.*
+import org.horaapps.leafpic.data.Album
+import org.horaapps.leafpic.data.AlbumRepository
+import org.horaapps.leafpic.data.LoadingState
+import org.horaapps.leafpic.data.Media
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
 import javax.inject.Inject
@@ -48,20 +51,6 @@ class MediaViewModel @Inject constructor(private val application: App,
     fun refreshMedia(album: Album) {
         viewModelScope.launch {
             albumRepository.loadMedia(application.contentResolver, album)
-        }
-    }
-
-    fun setSortingMode(album: Album, sortingMode: SortingMode) {
-        viewModelScope.launch {
-            val newAlbum = album.copy(albumInfo = album.albumInfo.copy(sortingMode = sortingMode))
-            albumRepository.updateAlbum(newAlbum)
-        }
-    }
-
-    fun setSortingOrder(album: Album, sortingOrder: SortingOrder) {
-        viewModelScope.launch {
-            val newAlbum = album.copy(albumInfo = album.albumInfo.copy(sortingOrder = sortingOrder))
-            albumRepository.updateAlbum(newAlbum)
         }
     }
 
