@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.Configuration;
 import android.graphics.PorterDuff;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -27,7 +28,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.mikepenz.google_material_typeface_library.GoogleMaterial;
-import com.orhanobut.hawk.Hawk;
 
 import org.horaapps.leafpic.R;
 import org.horaapps.leafpic.adapters.AlbumsAdapter;
@@ -36,7 +36,6 @@ import org.horaapps.leafpic.data.AlbumExtsKt;
 import org.horaapps.leafpic.data.AlbumsHelper;
 import org.horaapps.leafpic.data.LoadingState;
 import org.horaapps.leafpic.data.MediaHelper;
-import org.horaapps.leafpic.data.Status;
 import org.horaapps.leafpic.data.StorageHelper;
 import org.horaapps.leafpic.data.sort.SortingMode;
 import org.horaapps.leafpic.data.sort.SortingOrder;
@@ -47,6 +46,7 @@ import org.horaapps.leafpic.util.AnimationUtils;
 import org.horaapps.leafpic.util.DeviceUtils;
 import org.horaapps.leafpic.util.Measure;
 import org.horaapps.leafpic.util.Security;
+import org.horaapps.leafpic.util.SparseBooleanArrayParcelable;
 import org.horaapps.leafpic.util.preferences.Prefs;
 import org.horaapps.leafpic.views.GridSpacingItemDecoration;
 import org.horaapps.liz.ThemeHelper;
@@ -55,6 +55,7 @@ import org.horaapps.liz.ThemedActivity;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -70,6 +71,9 @@ import jp.wasabeef.recyclerview.animators.LandingAnimator;
 public class AlbumsFragment extends BaseMediaGridFragment {
 
     public static final String TAG = "AlbumsFragment";
+    private final String ARG_IS_SELECTING = "IS_SELECTING";
+    private final String ARG_SELECTED_COUNT = "SELECTED_COUNT";
+    private final String ARG_SELECTED = "SELECTED";
 
     @BindView(R.id.albums)
     RecyclerView rv;
@@ -90,6 +94,10 @@ public class AlbumsFragment extends BaseMediaGridFragment {
     private SortingMode sortingMode;
     private SortingOrder sortingOrder;
 
+    private int selectedCount = 0;
+    private boolean isSelecting = false;
+    public SparseBooleanArrayParcelable selected = new SparseBooleanArrayParcelable();
+
     public interface AlbumClickListener {
         void onAlbumClick(Album album);
     }
@@ -102,6 +110,13 @@ public class AlbumsFragment extends BaseMediaGridFragment {
         for (File file : storageRoots)
             // it has a lot of garbage
             excuded.add(new File(file.getPath(), "Android").getPath());
+
+        if (savedInstanceState != null) {
+            selectedCount = getArguments().getInt(ARG_SELECTED_COUNT);
+            isSelecting = getArguments().getBoolean(ARG_IS_SELECTING);
+            selected = getArguments().getParcelable(ARG_SELECTED);
+        }
+        adapter = new AlbumsAdapter(getContext(), this);
     }
 
     @Override
@@ -119,13 +134,20 @@ public class AlbumsFragment extends BaseMediaGridFragment {
         setUpColumns();
     }
 
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putInt(ARG_SELECTED_COUNT, selectedCount);
+        outState.putBoolean(ARG_IS_SELECTING, isSelecting);
+        outState.putParcelable(ARG_SELECTED, selected);
+        super.onSaveInstanceState(outState);
+    }
+
     public void displayAlbums(boolean hidden) {
         this.hidden = hidden;
         displayAlbums();
     }
 
     private void displayAlbums() {
-        adapter.clear();
         albumsViewModel.loadAlbums(sortingMode(), sortingOrder());
         albumsViewModel.refreshAlbums();
     }
@@ -135,13 +157,12 @@ public class AlbumsFragment extends BaseMediaGridFragment {
         super.onViewCreated(view, savedInstanceState);
         albumsViewModel = ViewModelProviders.of(this, viewModelFactory).get(AlbumsViewModel.class);
         albumsViewModel.getAlbums().observe(getViewLifecycleOwner(), list -> {
-            for (Album a : list)
-                adapter.add(a);
+            adapter.submitList(list);
 
             if (getNothingToShowListener() != null)
                 getNothingToShowListener().changedNothingToShow(getCount() == 0);
 
-            Hawk.put(hidden ? "h" : "albums", adapter.getAlbumsPaths());
+//            Hawk.put(hidden ? "h" : "albums", albumsViewModel.getAlbumsPaths());
 
             refresh.setRefreshing(false);
         });
@@ -187,7 +208,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
     @Override
     public View.OnClickListener getToolbarButtonListener(boolean editMode) {
         if (editMode) return null;
-        else return v -> adapter.clearSelected();
+        else return v -> clearSelected();
     }
 
     @Override
@@ -213,8 +234,6 @@ public class AlbumsFragment extends BaseMediaGridFragment {
                             new LandingAnimator(new OvershootInterpolator(1f))
                     ));
         }
-
-        adapter = new AlbumsAdapter(getContext(), this);
 
         refresh.setOnRefreshListener(this::displayAlbums);
         rv.setAdapter(adapter);
@@ -281,7 +300,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
         }
 
         if (oneSelected) {
-            Album selectedAlbum = adapter.getFirstSelectedAlbum();
+            Album selectedAlbum = getFirstSelectedAlbum();
             menu.findItem(R.id.pin_album).setTitle(selectedAlbum.getAlbumInfo().isPinned() ? getString(R.string.un_pin) : getString(R.string.pin));
             menu.findItem(R.id.clear_album_cover).setVisible(selectedAlbum.getAlbumInfo().getCoverPath() != null);
         }
@@ -292,28 +311,27 @@ public class AlbumsFragment extends BaseMediaGridFragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
-        Album selectedAlbum = adapter.getFirstSelectedAlbum();
+        Album selectedAlbum = getFirstSelectedAlbum();
         switch (item.getItemId()) {
 
             case R.id.select_all:
-                if (adapter.getSelectedCount() == adapter.getItemCount())
-                    adapter.clearSelected();
-                else adapter.selectAll();
+                if (getSelectedCount() == adapter.getItemCount())
+                    clearSelected();
+                else selectAll();
                 return true;
 
             case R.id.pin_album:
-                if (selectedAlbum != null) {
-                    albumsViewModel.setPinned(selectedAlbum, !selectedAlbum.getAlbumInfo().isPinned());
-                    adapter.clearSelected();
-                    adapter.sort();
-                }
+//                if (selectedAlbum != null) {
+//                    albumsViewModel.setPinned(selectedAlbum, !selectedAlbum.getAlbumInfo().isPinned());
+//                    clearSelected();
+//                    adapter.sort();
+//                }
                 return true;
 
             case R.id.clear_album_cover:
                 if (selectedAlbum != null) {
                     albumsViewModel.setCover(selectedAlbum, "");
-                    adapter.clearSelected();
-                    adapter.notifyItemChanaged(selectedAlbum);
+                    clearSelected();
                     // TODO: 4/5/17 updateui
                     return true;
                 }
@@ -328,7 +346,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
                 hideDialog.setButton(AlertDialog.BUTTON_POSITIVE, getString(hidden ? R.string.unhide : R.string.hide).toUpperCase(), (dialog, id) -> {
                     ArrayList<String> hiddenPaths = AlbumsHelper.getLastHiddenPaths();
 
-                    for (Album album : adapter.getSelectedAlbums()) {
+                    for (Album album : getSelectedAlbums()) {
                         if (hidden) { // unhide
                             AlbumsHelper.unHideAlbum(album.getPath(), getContext());
                             hiddenPaths.remove(album.getPath());
@@ -338,17 +356,17 @@ public class AlbumsFragment extends BaseMediaGridFragment {
                         }
                     }
                     AlbumsHelper.saveLastHiddenPaths(hiddenPaths);
-                    adapter.removeSelectedAlbums();
+                    removeSelectedAlbums();
                     updateToolbar();
                 });
 
                 if (!hidden) {
                     hideDialog.setButton(AlertDialog.BUTTON_NEUTRAL, getString(R.string.exclude).toUpperCase(), (dialog, which) -> {
-                        for (Album album : adapter.getSelectedAlbums()) {
+                        for (Album album : getSelectedAlbums()) {
                             albumsViewModel.excludeAlbum(selectedAlbum);
                             excuded.add(album.getPath());
                         }
-                        adapter.removeSelectedAlbums();
+                        removeSelectedAlbums();
                     });
                 }
                 hideDialog.setButton(DialogInterface.BUTTON_NEGATIVE, this.getString(R.string.cancel).toUpperCase(), (dialogInterface, i) -> hideDialog.dismiss());
@@ -356,8 +374,8 @@ public class AlbumsFragment extends BaseMediaGridFragment {
                 return true;
 
             case R.id.shortcut:
-                AlbumsHelper.createShortcuts(getContext(), adapter.getSelectedAlbums());
-                adapter.clearSelected();
+                AlbumsHelper.createShortcuts(getContext(), getSelectedAlbums());
+                clearSelected();
                 return true;
 
             case R.id.name_sort_mode:
@@ -406,12 +424,12 @@ public class AlbumsFragment extends BaseMediaGridFragment {
                 textViewExcludeTitle.setBackgroundColor(getPrimaryColor());
                 textViewExcludeTitle.setText(getString(R.string.exclude));
 
-                if (adapter.getSelectedCount() > 1) {
+                if (getSelectedCount() > 1) {
                     textViewExcludeMessage.setText(R.string.exclude_albums_message);
                     spinnerParents.setVisibility(View.GONE);
                 } else {
                     textViewExcludeMessage.setText(R.string.exclude_album_message);
-                    spinnerParents.setAdapter(getThemeHelper().getSpinnerAdapter(AlbumExtsKt.getParentsFolders(adapter.getFirstSelectedAlbum())));
+                    spinnerParents.setAdapter(getThemeHelper().getSpinnerAdapter(AlbumExtsKt.getParentsFolders(getFirstSelectedAlbum())));
                 }
 
                 textViewExcludeMessage.setTextColor(getTextColor());
@@ -419,19 +437,19 @@ public class AlbumsFragment extends BaseMediaGridFragment {
 
                 excludeDialogBuilder.setPositiveButton(this.getString(R.string.exclude).toUpperCase(), (dialog, id) -> {
 
-                    if (adapter.getSelectedCount() > 1) {
-                        for (Album album : adapter.getSelectedAlbums()) {
+                    if (getSelectedCount() > 1) {
+                        for (Album album : getSelectedAlbums()) {
                             albumsViewModel.excludeAlbum(album);
                             excuded.add(album.getPath());
                         }
-                        adapter.removeSelectedAlbums();
+                        removeSelectedAlbums();
 
                     } else {
                         String path = spinnerParents.getSelectedItem().toString();
 //                        db().excludeAlbum(path);
                         excuded.add(path);
-                        adapter.removeAlbumsThatStartsWith(path);
-                        adapter.forceSelectedCount(0);
+                        removeAlbumsThatStartsWith(path);
+                        forceSelectedCount(0);
                     }
                     updateToolbar();
                 });
@@ -472,7 +490,7 @@ public class AlbumsFragment extends BaseMediaGridFragment {
     }
 
     private void showDeleteBottomSheet() {
-        List<Album> selected = adapter.getSelectedAlbums();
+        List<Album> selected = getSelectedAlbums();
         ArrayList<io.reactivex.Observable<Album>> sources = new ArrayList<>(selected.size());
         for (Album media : selected)
             sources.add(MediaHelper.deleteAlbum(getContext().getApplicationContext(), media));
@@ -483,12 +501,12 @@ public class AlbumsFragment extends BaseMediaGridFragment {
                 .listener(new ProgressBottomSheet.Listener<Album>() {
                     @Override
                     public void onCompleted() {
-                        adapter.invalidateSelectedCount();
+                        invalidateSelectedCount();
                     }
 
                     @Override
                     public void onProgress(Album item) {
-                        adapter.removeAlbum(item);
+                        removeAlbum(item);
                     }
                 })
                 .build();
@@ -501,17 +519,23 @@ public class AlbumsFragment extends BaseMediaGridFragment {
     }
 
     public int getSelectedCount() {
-        return adapter.getSelectedCount();
+        return selectedCount;
     }
 
     @Override
     public boolean editMode() {
-        return adapter.selecting();
+        return selecting();
     }
 
     @Override
     public boolean clearSelected() {
-        return adapter.clearSelected();
+        for (int i=0; i<selected.size(); ++i) {
+            selected.put(i, false);
+            adapter.notifyItemChanged(i);
+        }
+        selectedCount = 0;
+        stopSelection();
+        return true;
     }
 
     @Override
@@ -537,5 +561,118 @@ public class AlbumsFragment extends BaseMediaGridFragment {
         adapter.refreshTheme(t);
         refresh.setColorSchemeColors(t.getAccentColor());
         refresh.setProgressBackgroundColorSchemeColor(t.getBackgroundColor());
+    }
+
+    public void selectAll() {
+        for (int i = 0; i < adapter.getItemCount(); i++) {
+            selected.put(i, true);
+            adapter.notifyItemChanged(i);
+        }
+        selectedCount = selected.size();
+        startSelection();
+    }
+
+    public List<Album> getSelectedAlbums() {
+        ArrayList<Album> arrayList = new ArrayList<>(selectedCount);
+        for (int i=0; i<selected.size(); ++i)
+            if (selected.get(i))
+                arrayList.add(adapter.get(i));
+        return arrayList;
+    }
+
+    public Album getFirstSelectedAlbum() {
+        if (selectedCount > 0) {
+            for (int i=0; i<selected.size(); ++i)
+                if (selected.get(i))
+                    return adapter.get(i);
+        }
+        return null;
+    }
+
+    public void removeSelectedAlbums() {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+//            albums.removeIf(Album::isSelected);
+//        else {
+//            Iterator<Album> iter = albums.iterator();
+//
+//            while (iter.hasNext()) {
+//                Album album = iter.next();
+//
+//                if (album.isSelected())
+//                    iter.remove();
+//            }
+//        }
+//        selectedCount = 0;
+//        notifyDataSetChanged();
+    }
+
+    public void removeAlbumsThatStartsWith(String path) {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+//            albums.removeIf(album -> album.getPath().startsWith(path));
+//        else {
+//            Iterator<Album> iter = albums.iterator();
+//
+//            while (iter.hasNext()) {
+//                Album album = iter.next();
+//
+//                if (album.getPath().startsWith(path))
+//                    iter.remove();
+//            }
+//        }
+//
+//        notifyDataSetChanged();
+    }
+
+    public void notifySelected(int position) {
+        boolean increase = false;
+        if (selected.get(position))
+            selected.put(position, false);
+        else {
+            selected.put(position, true);
+            increase = true;
+        }
+        selectedCount += increase ? 1 : -1;
+        onSelectionCountChanged(selectedCount, adapter.getItemCount());
+
+        if (selectedCount == 0 && isSelecting) stopSelection();
+        else if (selectedCount > 0 && !isSelecting) startSelection();
+    }
+
+    public void removeAlbum(Album album) {
+//        int i = albums.indexOf(album);
+//        albums.remove(i);
+//        notifyItemRemoved(i);
+    }
+
+    public void invalidateSelectedCount() {
+        int c = 0;
+        for (int i=0; i<selected.size(); ++i) {
+            c += selected.get(i) ? 1 : 0;
+        }
+
+        this.selectedCount = c;
+
+        if (this.selectedCount == 0) stopSelection();
+        else {
+            onSelectionCountChanged(selectedCount, adapter.getItemCount());
+        }
+    }
+
+    public boolean selecting() {
+        return isSelecting;
+    }
+
+    private void startSelection() {
+        isSelecting = true;
+        onSelectMode(true);
+    }
+
+    private void stopSelection() {
+        isSelecting = false;
+        onSelectMode(false);
+    }
+
+    public void forceSelectedCount(int count) {
+        selectedCount = count;
     }
 }
