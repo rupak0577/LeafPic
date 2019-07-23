@@ -5,7 +5,6 @@ import androidx.room.*
 import androidx.room.ForeignKey.CASCADE
 import org.horaapps.leafpic.timeline.data.TimelineItem
 import org.horaapps.leafpic.util.MimeTypeUtils
-import org.horaapps.leafpic.util.StringUtils
 import java.io.File
 
 @Entity(tableName = "media",
@@ -18,6 +17,7 @@ data class Media(
         @ColumnInfo(name = "name") val name: String,
         @ColumnInfo(name = "album_id") val albumId: Long,
         @ColumnInfo(name = "size") val size: Long = -1,
+        @ColumnInfo(name = "media_type") val mediaType: MediaType,
         @ColumnInfo(name = "mime_type") val mimeType: String = MimeTypeUtils.UNKNOWN_MIME_TYPE,
         @ColumnInfo(name = "date_modified") val dateModified: Long = -1,
         @ColumnInfo(name = "orientation") val orientation: Int = 0

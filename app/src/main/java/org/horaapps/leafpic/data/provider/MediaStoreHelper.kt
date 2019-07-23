@@ -5,10 +5,7 @@ import android.database.Cursor
 import android.provider.MediaStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.horaapps.leafpic.data.ALL_MEDIA_ALBUM_ID
-import org.horaapps.leafpic.data.Album
-import org.horaapps.leafpic.data.AlbumInfo
-import org.horaapps.leafpic.data.Media
+import org.horaapps.leafpic.data.*
 import org.horaapps.leafpic.data.filter.ImageFileFilter
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
@@ -217,17 +214,32 @@ class MediaStoreHelper {
         }
 
         private fun Cursor.toMedia(albumId: Long): Media {
+            val mimeType = getString(2)
+            val mediaType = when {
+                mimeType.endsWith("gif") -> MediaType.GIF
+                mimeType.startsWith("image") -> MediaType.IMAGE
+                mimeType.startsWith("video") -> MediaType.VIDEO
+                else -> MediaType.UNKNOWN
+            }
+
             return Media(path = getString(0), name = StringUtils.getPhotoNameByPath(getString(0)),
-                    albumId = albumId, size = getLong(3),
-                    mimeType = getString(2), dateModified = getLong(1),
+                    albumId = albumId, size = getLong(3), mediaType = mediaType,
+                    mimeType = mimeType, dateModified = getLong(1),
                     orientation = getInt(4))
         }
 
         private fun File.toMedia(albumId: Long): Media {
+            val mimeType = MimeTypeUtils.getMimeType(this.path)
+            val mediaType = when {
+                mimeType.endsWith("gif") -> MediaType.GIF
+                mimeType.startsWith("image") -> MediaType.IMAGE
+                mimeType.startsWith("video") -> MediaType.VIDEO
+                else -> MediaType.UNKNOWN
+            }
+
             return Media(path = this.path, name = StringUtils.getPhotoNameByPath(this.path),
                     albumId = albumId, size = this.length(),
-                    mimeType = MimeTypeUtils.getMimeType(this.path),
-                    dateModified = this.lastModified())
+                    mediaType = mediaType, mimeType = mimeType, dateModified = this.lastModified())
         }
 
         private fun getStorageRoots(dir: Array<File>): Array<File> {
