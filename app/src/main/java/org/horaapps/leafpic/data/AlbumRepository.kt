@@ -26,7 +26,7 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
     }
 
     fun getAlbums(sortingMode: SortingMode, sortingOrder: SortingOrder): Listing<Album> {
-        when(sortingMode) {
+        when (sortingMode) {
             SortingMode.NAME -> return when (sortingOrder) {
                 SortingOrder.ASCENDING -> Listing(list = albumDao.getIncludedAlbumsSyncSortedByNameAsc(),
                         loadingState = getLoadingState(true))
@@ -71,33 +71,82 @@ class AlbumRepository @Inject constructor(private val albumDao: AlbumDao,
         }
     }
 
-    fun getMedia(albumId: Long, sortingMode: SortingMode, sortingOrder: SortingOrder): Listing<Media> {
-        when(sortingMode) {
+    fun getMedia(albumId: Long, sortingMode: SortingMode, sortingOrder: SortingOrder,
+                 mediaType: MediaType?): Listing<Media> {
+        when (sortingMode) {
             SortingMode.NAME -> return when (sortingOrder) {
-                SortingOrder.ASCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByNameAsc(albumId),
-                        loadingState = getLoadingState(false))
-                SortingOrder.DESCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByNameDesc(albumId),
-                        loadingState = getLoadingState(false))
+                SortingOrder.ASCENDING -> {
+                    val dbCall = if (mediaType != null)
+                        mediaDao.getMediaForAlbumSyncSortedByNameAsc(albumId, mediaType)
+                    else
+                        mediaDao.getAllMediaForAlbumSyncSortedByNameAsc(albumId)
+
+                    Listing(list = dbCall, loadingState = getLoadingState(false))
+                }
+                SortingOrder.DESCENDING -> {
+                    val dbCall = if (mediaType != null)
+                        mediaDao.getMediaForAlbumSyncSortedByNameDesc(albumId, mediaType)
+                    else
+                        mediaDao.getAllMediaForAlbumSyncSortedByNameDesc(albumId)
+
+                    Listing(list = dbCall, loadingState = getLoadingState(false))
+                }
             }
             SortingMode.DATE -> return when (sortingOrder) {
-                SortingOrder.ASCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByDateAsc(albumId),
-                        loadingState = getLoadingState(false))
-                SortingOrder.DESCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByDateDesc(albumId),
-                        loadingState = getLoadingState(false))
+                SortingOrder.ASCENDING -> {
+                    val dbCall = if (mediaType != null)
+                        mediaDao.getMediaForAlbumSyncSortedByDateAsc(albumId, mediaType)
+                    else
+                        mediaDao.getAllMediaForAlbumSyncSortedByDateAsc(albumId)
+
+                    Listing(list = dbCall, loadingState = getLoadingState(false))
+                }
+                SortingOrder.DESCENDING -> {
+                    val dbCall = if (mediaType != null)
+                        mediaDao.getMediaForAlbumSyncSortedByDateDesc(albumId, mediaType)
+                    else
+                        mediaDao.getAllMediaForAlbumSyncSortedByDateDesc(albumId)
+
+                    Listing(list = dbCall, loadingState = getLoadingState(false))
+                }
             }
             SortingMode.SIZE -> return when (sortingOrder) {
-                SortingOrder.ASCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedBySizeAsc(albumId),
-                        loadingState = getLoadingState(false))
-                SortingOrder.DESCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedBySizeDesc(albumId),
-                        loadingState = getLoadingState(false))
+                SortingOrder.ASCENDING -> {
+                    val dbCall = if (mediaType != null)
+                        mediaDao.getMediaForAlbumSyncSortedBySizeAsc(albumId, mediaType)
+                    else
+                        mediaDao.getAllMediaForAlbumSyncSortedBySizeAsc(albumId)
+
+                    Listing(list = dbCall, loadingState = getLoadingState(false))
+                }
+                SortingOrder.DESCENDING -> {
+                    val dbCall = if (mediaType != null)
+                        mediaDao.getMediaForAlbumSyncSortedBySizeDesc(albumId, mediaType)
+                    else
+                        mediaDao.getAllMediaForAlbumSyncSortedBySizeDesc(albumId)
+
+                    Listing(list = dbCall, loadingState = getLoadingState(false))
+                }
             }
             SortingMode.TYPE -> return when (sortingOrder) {
-                SortingOrder.ASCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByTypeAsc(albumId),
-                        loadingState = getLoadingState(false))
-                SortingOrder.DESCENDING -> Listing(list = mediaDao.getMediaForAlbumSyncSortedByTypeDesc(albumId),
-                        loadingState = getLoadingState(false))
+                SortingOrder.ASCENDING -> {
+                    val dbCall = if (mediaType != null)
+                        mediaDao.getMediaForAlbumSyncSortedByTypeAsc(albumId, mediaType)
+                    else
+                        mediaDao.getAllMediaForAlbumSyncSortedByTypeAsc(albumId)
+
+                    Listing(list = dbCall, loadingState = getLoadingState(false))
+                }
+                SortingOrder.DESCENDING -> {
+                    val dbCall = if (mediaType != null)
+                        mediaDao.getMediaForAlbumSyncSortedByTypeDesc(albumId, mediaType)
+                    else
+                        mediaDao.getAllMediaForAlbumSyncSortedByTypeDesc(albumId)
+
+                    Listing(list = dbCall, loadingState = getLoadingState(false))
+                }
             }
-            else -> return Listing(list = mediaDao.getMediaForAlbumSyncSortedByDateDesc(albumId),
+            else -> return Listing(list = mediaDao.getAllMediaForAlbumSyncSortedByDateDesc(albumId),
                     loadingState = getLoadingState(false))
         }
     }

@@ -56,6 +56,7 @@ import org.horaapps.leafpic.animations.DepthPageTransformer;
 import org.horaapps.leafpic.data.Album;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.data.MediaHelper;
+import org.horaapps.leafpic.data.MediaType;
 import org.horaapps.leafpic.data.StorageHelper;
 import org.horaapps.leafpic.data.filter.MediaFilter;
 import org.horaapps.leafpic.data.sort.MediaComparators;
@@ -210,7 +211,8 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
         mediaViewModel.getMedia().observe(this, mediaList -> {
             ArrayList<Media> list = new ArrayList<>();
             for (Media ma : mediaList) {
-                if (MediaFilter.getFilter(album.getFilterMode()).accept(ma) && !ma.equals(m)) {
+                // filter first
+                if (!ma.equals(m)) {
                     int i = Collections.binarySearch(
                             list, ma, MediaComparators.getComparator(SortingMode.DATE, SortingOrder.DESCENDING));
                     if (i < 0) i = ~i;

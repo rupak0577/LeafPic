@@ -47,8 +47,7 @@ import org.horaapps.leafpic.data.AlbumRepository;
 import org.horaapps.leafpic.data.LoadingState;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.data.MediaHelper;
-import org.horaapps.leafpic.data.filter.FilterMode;
-import org.horaapps.leafpic.data.filter.MediaFilter;
+import org.horaapps.leafpic.data.MediaType;
 import org.horaapps.leafpic.data.sort.SortingMode;
 import org.horaapps.leafpic.data.sort.SortingOrder;
 import org.horaapps.leafpic.di.Injector;
@@ -61,6 +60,7 @@ import org.horaapps.leafpic.util.DeviceUtils;
 import org.horaapps.leafpic.util.Measure;
 import org.horaapps.leafpic.util.MediaUtils;
 import org.horaapps.leafpic.util.Security;
+import org.horaapps.leafpic.util.SparseBooleanArrayParcelable;
 import org.horaapps.leafpic.util.StringUtils;
 import org.horaapps.leafpic.util.preferences.Prefs;
 import org.horaapps.leafpic.views.GridSpacingItemDecoration;
@@ -86,6 +86,11 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     public static final String TAG = "RvMediaFragment";
     private static final String BUNDLE_ALBUM = "album";
 
+    private final String ARG_IS_SELECTING = "IS_SELECTING";
+    private final String ARG_SELECTED_COUNT = "SELECTED_COUNT";
+    private final String ARG_SELECTED = "SELECTED";
+    private final String ARG_LAST_SELECTED_POS = "LAST_SELECTED_POS";
+
     @BindView(R.id.media) RecyclerView rv;
     @BindView(R.id.swipe_refresh) SwipeRefreshLayout refresh;
 
@@ -106,6 +111,15 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+
+        if (savedInstanceState != null) {
+            adapter = new MediaAdapter(getContext(), this, getArguments().getParcelable(ARG_SELECTED));
+            adapter.selectedCount = getArguments().getInt(ARG_SELECTED_COUNT);
+            adapter.isSelecting = getArguments().getBoolean(ARG_IS_SELECTING);
+            adapter.lastSelectedPosition = getArguments().getInt(ARG_LAST_SELECTED_POS);
+        } else {
+            adapter = new MediaAdapter(getContext(), this, new SparseBooleanArrayParcelable());
+        }
 
         SharedVM sharedVM = ViewModelProviders.of(getActivity()).get(SharedVM.class);
         album = sharedVM.getAlbum();
@@ -136,13 +150,16 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
     private void loadAlbum(Album album) {
         this.album = album;
-        adapter.setupFor(album);
         mediaViewModel.refreshMedia(album);
         mediaViewModel.loadMedia(album, sortingMode(), sortingOrder());
     }
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putInt(ARG_SELECTED_COUNT, adapter.selectedCount);
+        outState.putInt(ARG_LAST_SELECTED_POS, adapter.lastSelectedPosition);
+        outState.putBoolean(ARG_IS_SELECTING, adapter.isSelecting);
+        outState.putParcelable(ARG_SELECTED, adapter.selectedItems);
         super.onSaveInstanceState(outState);
     }
 
@@ -169,8 +186,6 @@ public class RvMediaFragment extends BaseMediaGridFragment {
                         new LandingAnimator(new OvershootInterpolator(1f))
                 ));
 
-        adapter = new MediaAdapter(getContext(), SortingMode.DATE, SortingOrder.DESCENDING, this);
-
         refresh.setOnRefreshListener(this::reload);
         rv.setAdapter(adapter);
 
@@ -183,10 +198,8 @@ public class RvMediaFragment extends BaseMediaGridFragment {
         mediaViewModel = ViewModelProviders.of(this, viewModelFactory).get(MediaViewModel.class);
 
         mediaViewModel.getMedia().observe(getViewLifecycleOwner(), list -> {
-            for (Media m : list) {
-                if (MediaFilter.getFilter(album.getFilterMode()).accept(m))
-                    adapter.add(m);
-            }
+            adapter.submitList(list);
+
             if (getNothingToShowListener() != null)
                 getNothingToShowListener().changedNothingToShow(getCount() == 0);
         });
@@ -313,54 +326,54 @@ public class RvMediaFragment extends BaseMediaGridFragment {
         switch (item.getItemId()) {
 
             case R.id.all_media_filter:
-                album.setFilterMode(FilterMode.ALL);
+                mediaViewModel.setMediaFilter(null);
                 item.setChecked(true);
                 reload();
                 return true;
 
             case R.id.video_media_filter:
-                album.setFilterMode(FilterMode.VIDEO);
+                mediaViewModel.setMediaFilter(MediaType.VIDEO);
                 item.setChecked(true);
                 reload();
                 return true;
 
             case R.id.image_media_filter:
-                album.setFilterMode(FilterMode.IMAGES);
+                mediaViewModel.setMediaFilter(MediaType.IMAGE);
                 item.setChecked(true);
                 reload();
                 return true;
 
             case R.id.gifs_media_filter:
-                album.setFilterMode(FilterMode.GIF);
+                mediaViewModel.setMediaFilter(MediaType.GIF);
                 item.setChecked(true);
                 reload();
                 return true;
 
             case R.id.sharePhotos:
-                MediaUtils.shareMedia(getContext(), adapter.getSelected());
+                MediaUtils.shareMedia(getContext(), getSelected());
                 return true;
 
             case R.id.set_as_cover:
-                String path = adapter.getFirstSelected().getPath();
+                String path = getFirstSelected().getPath();
                 mediaViewModel.setCover(album, path);
                 adapter.clearSelected();
                 return true;
 
             case R.id.action_palette:
                 Intent paletteIntent = new Intent(getActivity(), PaletteActivity.class);
-                paletteIntent.setData(adapter.getFirstSelected().getUri());
+                paletteIntent.setData(getFirstSelected().getUri());
                 startActivity(paletteIntent);
                 return true;
 
             case R.id.rename:
                 final EditText editTextNewName = new EditText(getActivity());
-                editTextNewName.setText(StringUtils.getPhotoNameByPath(adapter.getFirstSelected().getPath()));
+                editTextNewName.setText(StringUtils.getPhotoNameByPath(getFirstSelected().getPath()));
 
                 AlertDialog renameDialog = AlertDialogsHelper.getInsertTextDialog(((ThemedActivity) getActivity()), editTextNewName, R.string.rename_photo_action);
 
                 renameDialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.ok_action).toUpperCase(), (dialog, which) -> {
                     if (editTextNewName.length() != 0) {
-                        boolean b = MediaHelper.renameMedia(getActivity(), adapter.getFirstSelected(), editTextNewName.getText().toString());
+                        boolean b = MediaHelper.renameMedia(getActivity(), getFirstSelected(), editTextNewName.getText().toString());
                         if (!b) {
                             StringUtils.showToast(getActivity(), getString(R.string.rename_error));
                             //adapter.notifyDataSetChanged();
@@ -380,21 +393,18 @@ public class RvMediaFragment extends BaseMediaGridFragment {
                 return true;
 
             case R.id.name_sort_mode:
-                adapter.changeSortingMode(SortingMode.NAME);
                 sortingMode = SortingMode.NAME;
                 mediaViewModel.setSortOptions(sortingMode, sortingOrder);
                 item.setChecked(true);
                 return true;
 
             case R.id.date_taken_sort_mode:
-                adapter.changeSortingMode(SortingMode.DATE);
                 sortingMode = SortingMode.DATE;
                 mediaViewModel.setSortOptions(sortingMode, sortingOrder);
                 item.setChecked(true);
                 return true;
 
             case R.id.size_sort_mode:
-                adapter.changeSortingMode(SortingMode.SIZE);
                 sortingMode = SortingMode.SIZE;
                 mediaViewModel.setSortOptions(sortingMode, sortingOrder);
                 item.setChecked(true);
@@ -407,7 +417,6 @@ public class RvMediaFragment extends BaseMediaGridFragment {
             case R.id.ascending_sort_order:
                 item.setChecked(!item.isChecked());
                 sortingOrder = SortingOrder.fromValue(item.isChecked());
-                adapter.changeSortingOrder(sortingOrder);
                 mediaViewModel.setSortOptions(sortingMode, sortingOrder);
                 return true;
 
@@ -450,9 +459,9 @@ public class RvMediaFragment extends BaseMediaGridFragment {
                     protected Void doInBackground(Affix.Options... arg0) {
                         ArrayList<Bitmap> bitmapArray = new ArrayList<Bitmap>();
                         for (int i = 0; i < adapter.getSelectedCount(); i++) {
-                            if(!adapter.getSelected().get(i).isVideo()) {
+                            if(getSelected().get(i).getMediaType() != MediaType.VIDEO) {
                                 BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-                                Bitmap bitmap = BitmapFactory.decodeFile(adapter.getSelected().get(i).getPath(), bmOptions);
+                                Bitmap bitmap = BitmapFactory.decodeFile(getSelected().get(i).getPath(), bmOptions);
                                 bitmap = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth(), bitmap.getHeight(), true);
 
                                 bitmapArray.add(bitmap);
@@ -611,7 +620,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
                         }
 
                         Affix.Options options = new Affix.Options(
-                                swSaveHere.isChecked() ? adapter.getFirstSelected().getPath() : Affix.getDefaultDirectoryPath(),
+                                swSaveHere.isChecked() ? getFirstSelected().getPath() : Affix.getDefaultDirectoryPath(),
                                 compressFormat,
                                 seekQuality.getProgress(),
                                 swVertical.isChecked());
@@ -628,7 +637,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     }
 
     private void showDeleteBottomSheet() {
-        MediaUtils.deleteMedia(getContext(), adapter.getSelected(), getChildFragmentManager(),
+        MediaUtils.deleteMedia(getContext(), getSelected(), getChildFragmentManager(),
                 new ProgressBottomSheet.Listener<Media>() {
                     @Override
                     public void onCompleted() {
@@ -637,7 +646,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
                     @Override
                     public void onProgress(Media item) {
-                        adapter.removeSelectedMedia(item);
+                        removeSelectedMedia(item);
                     }
                 });
     }
@@ -683,5 +692,40 @@ public class RvMediaFragment extends BaseMediaGridFragment {
         adapter.refreshTheme(t);
         refresh.setColorSchemeColors(t.getAccentColor());
         refresh.setProgressBackgroundColorSchemeColor(t.getBackgroundColor());
+    }
+
+    public void remove(Media media) {
+//        int i = this.media.indexOf(media);
+//        this.media.remove(i);
+//        notifyItemRemoved(i);
+    }
+
+    public void removeSelectedMedia(Media media) {
+//        int i = this.media.indexOf(media);
+//        this.media.remove(i);
+//        notifyItemRemoved(i);
+//
+////        this.notifySelected(false);
+    }
+
+    public ArrayList<Media> getSelected() {
+//        ArrayList<Media> arrayList = new ArrayList<>(selectedCount);
+//        for (Media m : media)
+//            if (m.isSelected())
+//                arrayList.add(m);
+//        return arrayList;
+        return null;
+    }
+
+    public Media getFirstSelected() {
+//        if (selectedCount > 0) {
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+//                return media.stream().filter(Media::isSelected).findFirst().orElse(null);
+//            else
+//                for (Media m : media)
+//                    if (m.isSelected())
+//                        return m;
+//        }
+        return null;
     }
 }

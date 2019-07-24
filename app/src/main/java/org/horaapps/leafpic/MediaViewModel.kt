@@ -2,10 +2,7 @@ package org.horaapps.leafpic
 
 import androidx.lifecycle.*
 import kotlinx.coroutines.launch
-import org.horaapps.leafpic.data.Album
-import org.horaapps.leafpic.data.AlbumRepository
-import org.horaapps.leafpic.data.LoadingState
-import org.horaapps.leafpic.data.Media
+import org.horaapps.leafpic.data.*
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
 import javax.inject.Inject
@@ -17,9 +14,10 @@ class MediaViewModel @Inject constructor(private val application: App,
     private val _album = MutableLiveData<Album>()
     private var _sortingMode = SortingMode.DATE
     private var _sortingOrder = SortingOrder.DESCENDING
+    private var _mediaFilter: MediaType? = null
 
     private val mediaResult = Transformations.map(_album) { album ->
-        albumRepository.getMedia(album.id, _sortingMode, _sortingOrder)
+        albumRepository.getMedia(album.id, _sortingMode, _sortingOrder, _mediaFilter)
     }
 
     val media: LiveData<List<Media>> = Transformations.switchMap(mediaResult) {
@@ -42,6 +40,14 @@ class MediaViewModel @Inject constructor(private val application: App,
     fun setSortOptions(sortingMode: SortingMode, sortingOrder: SortingOrder) {
         _sortingMode = sortingMode
         _sortingOrder = sortingOrder
+
+        _album.value?.let {
+            _album.value = it
+        }
+    }
+
+    fun setMediaFilter(mediaType: MediaType?) {
+        _mediaFilter = mediaType
 
         _album.value?.let {
             _album.value = it

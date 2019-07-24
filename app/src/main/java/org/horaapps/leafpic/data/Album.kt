@@ -2,7 +2,6 @@ package org.horaapps.leafpic.data
 
 import android.os.Bundle
 import androidx.room.*
-import org.horaapps.leafpic.data.filter.FilterMode
 
 const val PK_ALBUM_NAME = "ALBUM_NAME"
 const val PK_ALBUM_FILE_COUNT = "FILE_COUNT"
@@ -22,8 +21,6 @@ data class Album(
         @ColumnInfo(name = "file_count") val fileCount: Int = -1,
         @Embedded val albumInfo: AlbumInfo = AlbumInfo()
 ) : DiffableEntity<Album> {
-    @Ignore
-    var filterMode: FilterMode = FilterMode.ALL
 
     override fun isSameAs(newItem: Album): Boolean {
         return this.id == newItem.id
