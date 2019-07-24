@@ -4,7 +4,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.room.*
 import androidx.room.ForeignKey.CASCADE
-import org.horaapps.leafpic.timeline.data.TimelineItem
+import org.horaapps.leafpic.ui.timeline.data.TimelineItem
 import org.horaapps.leafpic.util.MimeTypeUtils
 import java.io.File
 

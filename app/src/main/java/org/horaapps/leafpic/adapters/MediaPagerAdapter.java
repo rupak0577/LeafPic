@@ -10,9 +10,9 @@ import android.view.ViewGroup;
 
 import org.horaapps.leafpic.activities.SingleMediaActivity;
 import org.horaapps.leafpic.data.Media;
-import org.horaapps.leafpic.fragments.GifFragment;
-import org.horaapps.leafpic.fragments.ImageFragment;
-import org.horaapps.leafpic.fragments.VideoFragment;
+import org.horaapps.leafpic.ui.common.GifFragment;
+import org.horaapps.leafpic.ui.common.ImageFragment;
+import org.horaapps.leafpic.ui.common.VideoFragment;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;

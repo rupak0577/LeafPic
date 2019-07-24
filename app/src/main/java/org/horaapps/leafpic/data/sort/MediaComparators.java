@@ -3,7 +3,7 @@ package org.horaapps.leafpic.data.sort;
 import androidx.annotation.NonNull;
 
 import org.horaapps.leafpic.data.Media;
-import org.horaapps.leafpic.timeline.data.TimelineHeaderModel;
+import org.horaapps.leafpic.ui.timeline.data.TimelineHeaderModel;
 import org.horaapps.leafpic.util.NumericComparator;
 
 import java.util.Comparator;

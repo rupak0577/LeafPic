@@ -6,8 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntoMap
-import org.horaapps.leafpic.MediaViewModel
-import org.horaapps.leafpic.fragments.AlbumsViewModel
+import org.horaapps.leafpic.ui.media.MediaViewModel
+import org.horaapps.leafpic.ui.albums.AlbumsViewModel
 import org.horaapps.leafpic.util.LeafPicViewModelFactory
 
 @Suppress("unused")
