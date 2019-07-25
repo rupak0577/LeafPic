@@ -276,7 +276,7 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
 
     private fun loadAlbum() {
         mediaViewModel.refreshMedia(contentAlbum)
-        mediaViewModel.loadMedia(contentAlbum, SortingMode.DATE, SortingOrder.DESCENDING)
+        mediaViewModel.loadMedia(contentAlbum.id, SortingMode.DATE, SortingOrder.DESCENDING)
     }
 
     private fun setAdapterMedia(mediaList: ArrayList<Media>) {
@@ -297,7 +297,7 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
         }
     }
 
-    override fun onItemSelected(position: Int) = timelineListener.onMediaClick(contentAlbum, timelineAdapter.media, position)
+    override fun onItemSelected(position: Int) = timelineListener.onMediaClick(contentAlbum.id, timelineAdapter.media.get(position).getFile(), position)
 
     override fun onSelectMode(selectMode: Boolean) = updateToolbar()
 

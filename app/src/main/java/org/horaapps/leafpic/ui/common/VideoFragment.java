@@ -33,8 +33,8 @@ public class VideoFragment extends BaseMediaFragment {
     @BindView(R.id.video_play_icon) ThemedIcon playVideoIcon;
 
     @NonNull
-    public static VideoFragment newInstance(@NonNull Media media) {
-        return BaseMediaFragment.newInstance(new VideoFragment(), media);
+    public static VideoFragment newInstance(@NonNull Uri mediaUri, String mimeType) {
+        return BaseMediaFragment.newInstance(new VideoFragment(), mediaUri, mimeType);
     }
 
     @Override
@@ -49,8 +49,7 @@ public class VideoFragment extends BaseMediaFragment {
         super.onViewCreated(view, savedInstanceState);
 
         playVideoIcon.setOnClickListener(v -> {
-            Uri uri = StorageHelper.getUriForFile(getContext(), media.getFile());
-            Intent intent = new Intent(Intent.ACTION_VIEW).setDataAndType(uri, media.getMimeType());
+            Intent intent = new Intent(Intent.ACTION_VIEW).setDataAndType(mediaUri, mimeType);
             intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(intent);
         });
@@ -64,7 +63,7 @@ public class VideoFragment extends BaseMediaFragment {
                         .diskCacheStrategy(
                                 DiskCacheStrategy.AUTOMATIC);
 
-        Glide.with(getContext()).load(media.getUri()).apply(options).into(previewView);
+        Glide.with(getContext()).load(mediaUri).apply(options).into(previewView);
         setTapListener(previewView);
     }
 

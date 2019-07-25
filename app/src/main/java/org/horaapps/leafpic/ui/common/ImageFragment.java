@@ -27,8 +27,8 @@ public class ImageFragment extends BaseMediaFragment {
     @BindView(R.id.subsampling_view) SubsamplingScaleImageView imageView;
 
     @NonNull
-    public static ImageFragment newInstance(@NonNull Media media) {
-        return BaseMediaFragment.newInstance(new ImageFragment(), media);
+    public static ImageFragment newInstance(@NonNull Uri mediaUri, String mimeType) {
+        return BaseMediaFragment.newInstance(new ImageFragment(), mediaUri, mimeType);
     }
 
     @Override
@@ -41,7 +41,6 @@ public class ImageFragment extends BaseMediaFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        Uri mediaUri = media.getUri();
         imageView.setOrientation(BitmapUtils.getOrientation(mediaUri, getContext()));
         imageView.setImage(ImageSource.uri(mediaUri));
         setTapListener(imageView);

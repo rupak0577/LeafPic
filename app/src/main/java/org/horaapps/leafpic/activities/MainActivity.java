@@ -56,6 +56,7 @@ import org.horaapps.leafpic.util.StringUtils;
 import org.horaapps.leafpic.util.preferences.Prefs;
 import org.horaapps.leafpic.views.navigation_drawer.NavigationDrawer;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -215,14 +216,12 @@ public class MainActivity extends SharedMediaActivity implements
     }
 
     @Override
-    public void onMediaClick(Album album, ArrayList<Media> media, int position) {
+    public void onMediaClick(long albumId, File file, int position) {
 
         if (!pickMode) {
             Intent intent = new Intent(getApplicationContext(), SingleMediaActivity.class);
-            SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
-            sharedVM.setAlbum(album);
-            sharedVM.setMediaList(media);
             try {
+                intent.putExtra(SingleMediaActivity.EXTRA_ARGS_ALBUM_ID, albumId);
                 intent.setAction(SingleMediaActivity.ACTION_OPEN_ALBUM);
                 intent.putExtra(SingleMediaActivity.EXTRA_ARGS_POSITION, position);
                 startActivity(intent);
@@ -236,8 +235,7 @@ public class MainActivity extends SharedMediaActivity implements
 
         } else {
 
-            Media m = media.get(position);
-            Uri uri = LegacyCompatFileProvider.getUri(getApplicationContext(), m.getFile());
+            Uri uri = LegacyCompatFileProvider.getUri(getApplicationContext(), file);
             Intent res = new Intent();
             res.setData(uri);
             res.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);

@@ -1,11 +1,8 @@
 package org.horaapps.leafpic.ui.base.interfaces;
 
-import org.horaapps.leafpic.data.Album;
-import org.horaapps.leafpic.data.Media;
-
-import java.util.ArrayList;
+import java.io.File;
 
 public interface MediaClickListener {
 
-    void onMediaClick(Album album, ArrayList<Media> media, int position);
+    void onMediaClick(long albumID, File file, int position);
 }

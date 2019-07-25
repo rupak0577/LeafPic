@@ -150,7 +150,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     private void loadAlbum(Album album) {
         this.album = album;
         mediaViewModel.refreshMedia(album);
-        mediaViewModel.loadMedia(album, sortingMode(), sortingOrder());
+        mediaViewModel.loadMedia(album.getId(), sortingMode(), sortingOrder());
     }
 
     @Override
@@ -665,7 +665,8 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
     @Override
     public void onItemSelected(int position) {
-        if (listener != null) listener.onMediaClick(RvMediaFragment.this.album, adapter.getMedia(), position);
+        if (listener != null) listener.onMediaClick(adapter.getMedia(position).getAlbumId(),
+                adapter.getMedia(position).getFile(), position);
     }
 
     @Override

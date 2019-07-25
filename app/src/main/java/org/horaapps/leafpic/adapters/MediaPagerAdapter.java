@@ -1,21 +1,21 @@
 package org.horaapps.leafpic.adapters;
 
+import android.util.SparseArray;
+import android.view.ViewGroup;
+
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.viewpager.widget.PagerAdapter;
-import android.util.SparseArray;
-import android.view.ViewGroup;
 
-import org.horaapps.leafpic.activities.SingleMediaActivity;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.ui.common.GifFragment;
 import org.horaapps.leafpic.ui.common.ImageFragment;
 import org.horaapps.leafpic.ui.common.VideoFragment;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by dnld on 18/02/16.
@@ -24,24 +24,20 @@ import java.util.ArrayList;
 public class MediaPagerAdapter extends FragmentStatePagerAdapter {
 
     private final String TAG = "asd";
-    private ArrayList<Media> media;
-    private WeakReference<SingleMediaActivity> singleMediaActivity;
+    private List<Media> media;
     private SparseArray<Fragment> registeredFragments = new SparseArray<>();
 
-    public MediaPagerAdapter(FragmentManager fm, ArrayList<Media> media, SingleMediaActivity singleMediaActivity) {
+    public MediaPagerAdapter(FragmentManager fm, ArrayList<Media> media) {
         super(fm);
         this.media = media;
-        this.singleMediaActivity = new WeakReference<>(singleMediaActivity);
     }
 
     @Override
     public Fragment getItem(int pos) {
         Media media = this.media.get(pos);
-        if (singleMediaActivity.get() != null)
-            singleMediaActivity.get().setMediaInSharedVM(media);
-        if (media.isVideo()) return VideoFragment.newInstance(media);
-        if (media.isGif()) return GifFragment.newInstance(media);
-        else return ImageFragment.newInstance(media);
+        if (media.isVideo()) return VideoFragment.newInstance(media.getUri(), media.getMimeType());
+        if (media.isGif()) return GifFragment.newInstance(media.getUri(), media.getMimeType());
+        else return ImageFragment.newInstance(media.getUri(), media.getMimeType());
     }
 
     @NonNull

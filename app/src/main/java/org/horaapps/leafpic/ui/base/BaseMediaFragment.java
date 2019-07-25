@@ -1,6 +1,7 @@
 package org.horaapps.leafpic.ui.base;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModelProviders;
@@ -16,14 +17,21 @@ import org.horaapps.liz.ThemeHelper;
  */
 public abstract class BaseMediaFragment extends BaseFragment {
 
-    private static final String ARGS_MEDIA = "args_media";
+    private static final String ARGS_MEDIA_URI = "args_media_uri";
+    private static final String ARGS_MEDIA_TYPE = "args_media_type";
 
-    protected Media media;
+    protected Uri mediaUri;
+    protected String mimeType;
     private MediaTapListener mediaTapListener;
 
     @NonNull
     protected static <T extends BaseMediaFragment> T newInstance(@NonNull T mediaFragment,
-                                                                 @NonNull Media media) {
+                                                                 @NonNull Uri mediaUri,
+                                                                 String mimeType) {
+        Bundle args = new Bundle();
+        args.putParcelable(ARGS_MEDIA_URI, mediaUri);
+        args.putString(ARGS_MEDIA_TYPE, mimeType);
+        mediaFragment.setArguments(args);
         return mediaFragment;
     }
 
@@ -36,8 +44,10 @@ public abstract class BaseMediaFragment extends BaseFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        SharedVM sharedVM = ViewModelProviders.of(getActivity()).get(SharedVM.class);
-        media = sharedVM.getMedia();
+        Bundle args = getArguments();
+        if (args == null) throw new RuntimeException("Must pass arguments to Media Fragments!");
+        mediaUri = getArguments().getParcelable(ARGS_MEDIA_URI);
+        mimeType = getArguments().getString(ARGS_MEDIA_TYPE);
     }
 
     @Override

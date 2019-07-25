@@ -1,5 +1,6 @@
 package org.horaapps.leafpic.ui.common;
 
+import android.net.Uri;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import android.view.LayoutInflater;
@@ -17,8 +18,8 @@ import pl.droidsonroids.gif.GifImageView;
 public class GifFragment extends BaseMediaFragment {
 
     @NonNull
-    public static GifFragment newInstance(@NonNull Media media) {
-        return BaseMediaFragment.newInstance(new GifFragment(), media);
+    public static GifFragment newInstance(@NonNull Uri mediaUri, String mimeType) {
+        return BaseMediaFragment.newInstance(new GifFragment(), mediaUri, mimeType);
     }
 
     @Override
@@ -27,7 +28,7 @@ public class GifFragment extends BaseMediaFragment {
                              Bundle savedInstanceState) {
 
         GifImageView photoView = new GifImageView(getContext());
-        photoView.setImageURI(media.getUri());
+        photoView.setImageURI(mediaUri);
         setTapListener(photoView);
         return photoView;
     }

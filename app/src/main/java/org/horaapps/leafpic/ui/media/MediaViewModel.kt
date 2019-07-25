@@ -12,13 +12,13 @@ class MediaViewModel @Inject constructor(private val application: App,
                                          private val albumRepository: AlbumRepository)
     : AndroidViewModel(application) {
 
-    private val _album = MutableLiveData<Album>()
+    private val _albumId = MutableLiveData<Long>()
     private var _sortingMode = SortingMode.DATE
     private var _sortingOrder = SortingOrder.DESCENDING
     private var _mediaFilter: MediaType? = null
 
-    private val mediaResult = Transformations.map(_album) { album ->
-        albumRepository.getMedia(album.id, _sortingMode, _sortingOrder, _mediaFilter)
+    private val mediaResult = Transformations.map(_albumId) { albumId ->
+        albumRepository.getMedia(albumId, _sortingMode, _sortingOrder, _mediaFilter)
     }
 
     val media: LiveData<List<Media>> = Transformations.switchMap(mediaResult) {
@@ -29,12 +29,12 @@ class MediaViewModel @Inject constructor(private val application: App,
         it.loadingState
     }
 
-    fun loadMedia(album: Album, sortingMode: SortingMode, sortingOrder: SortingOrder) {
+    fun loadMedia(albumId: Long, sortingMode: SortingMode, sortingOrder: SortingOrder) {
         _sortingMode = sortingMode
         _sortingOrder = sortingOrder
 
-        if (_album.value != album) {
-            _album.value = album
+        if (_albumId.value != albumId) {
+            _albumId.value = albumId
         }
     }
 
@@ -42,16 +42,16 @@ class MediaViewModel @Inject constructor(private val application: App,
         _sortingMode = sortingMode
         _sortingOrder = sortingOrder
 
-        _album.value?.let {
-            _album.value = it
+        _albumId.value?.let {
+            _albumId.value = it
         }
     }
 
     fun setMediaFilter(mediaType: MediaType?) {
         _mediaFilter = mediaType
 
-        _album.value?.let {
-            _album.value = it
+        _albumId.value?.let {
+            _albumId.value = it
         }
     }
 

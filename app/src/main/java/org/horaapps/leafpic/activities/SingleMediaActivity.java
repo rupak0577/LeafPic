@@ -46,16 +46,15 @@ import com.mikepenz.google_material_typeface_library.GoogleMaterial;
 import com.orhanobut.hawk.Hawk;
 import com.yalantis.ucrop.UCrop;
 
-import org.horaapps.leafpic.ui.media.MediaViewModel;
 import org.horaapps.leafpic.R;
 import org.horaapps.leafpic.SelectAlbumBuilder;
-import org.horaapps.leafpic.ui.common.SharedVM;
 import org.horaapps.leafpic.activities.base.SharedMediaActivity;
 import org.horaapps.leafpic.adapters.MediaPagerAdapter;
 import org.horaapps.leafpic.animations.DepthPageTransformer;
 import org.horaapps.leafpic.data.Album;
 import org.horaapps.leafpic.data.Media;
 import org.horaapps.leafpic.data.MediaHelper;
+import org.horaapps.leafpic.data.MediaType;
 import org.horaapps.leafpic.data.StorageHelper;
 import org.horaapps.leafpic.data.sort.MediaComparators;
 import org.horaapps.leafpic.data.sort.SortingMode;
@@ -63,6 +62,8 @@ import org.horaapps.leafpic.data.sort.SortingOrder;
 import org.horaapps.leafpic.di.Injector;
 import org.horaapps.leafpic.ui.base.BaseMediaFragment;
 import org.horaapps.leafpic.ui.common.ImageFragment;
+import org.horaapps.leafpic.ui.common.SharedVM;
+import org.horaapps.leafpic.ui.media.MediaViewModel;
 import org.horaapps.leafpic.util.AlertDialogsHelper;
 import org.horaapps.leafpic.util.AnimationUtils;
 import org.horaapps.leafpic.util.DeviceUtils;
@@ -107,6 +108,7 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
     public static final String EXTRA_ARGS_ALBUM = "args_album";
     public static final String EXTRA_ARGS_MEDIA = "args_media";
     public static final String EXTRA_ARGS_POSITION = "args_position";
+    public static final String EXTRA_ARGS_ALBUM_ID = "args_album_id";
 
     @BindView(R.id.photos_pager) HackyViewPager mViewPager;
     @BindView(R.id.PhotoPager_Layout) RelativeLayout activityBackground;
@@ -119,9 +121,10 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
 
     private boolean fullScreenMode, customUri = false;
     private int position;
+    private long albumId;
 
     private Album album;
-    private ArrayList<Media> media;
+    private ArrayList<Media> media = new ArrayList<>();
     private MediaPagerAdapter adapter;
     private boolean isSlideShowOn = false;
 
@@ -151,16 +154,18 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
 
         String action = getIntent().getAction();
 
+        viewModelFactory = Injector.Companion.get().viewModelFactory();
+        mediaViewModel = ViewModelProviders.of(this, viewModelFactory).get(MediaViewModel.class);
+
         if (action != null) {
             switch (action) {
                 case ACTION_OPEN_ALBUM:
                     loadAlbum(getIntent());
                     break;
                 case ACTION_OPEN_ALBUM_LAZY:
-                    loadAlbumsLazy(getIntent());
                     break;
                 default:
-                    //loadUri(getIntent().getData());
+                    loadUri(getIntent().getData());
                     break;
 
             }
@@ -176,70 +181,35 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
             mViewPager.setLocked(savedInstanceState.getBoolean(ISLOCKED_ARG, false));
         }
 
-        viewModelFactory = Injector.Companion.get().viewModelFactory();
-        mediaViewModel = ViewModelProviders.of(this, viewModelFactory).get(MediaViewModel.class);
-
-        adapter = new MediaPagerAdapter(getSupportFragmentManager(), media, this);
+        adapter = new MediaPagerAdapter(getSupportFragmentManager(), media);
         initUi();
     }
 
-    public void setMediaInSharedVM(Media media) {
-        SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
-        sharedVM.setMedia(media);
-    }
-
     private void loadAlbum(Intent intent) {
-        SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
-        album = sharedVM.getAlbum();
-        position = intent.getIntExtra(EXTRA_ARGS_POSITION, 0);
-        media = sharedVM.getMediaList();
-    }
+        position = getIntent().getIntExtra(EXTRA_ARGS_POSITION, 0);
+        albumId = getIntent().getLongExtra(EXTRA_ARGS_ALBUM_ID, -1);
 
-    private void loadAlbumsLazy(Intent intent) {
-        SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
-        album = sharedVM.getAlbum();
-        //position = intent.getIntExtra(EXTRA_ARGS_POSITION, 0);
-        Media m = sharedVM.getMedia();
-        media = new ArrayList<>();
-        media.add(m);
-        position = 0;
-
-        mediaViewModel.refreshMedia(album);
-        mediaViewModel.loadMedia(album, SortingMode.DATE, SortingOrder.DESCENDING);
         mediaViewModel.getMedia().observe(this, mediaList -> {
-            ArrayList<Media> list = new ArrayList<>();
-            for (Media ma : mediaList) {
-                // filter first
-                if (!ma.equals(m)) {
-                    int i = Collections.binarySearch(
-                            list, ma, MediaComparators.getComparator(SortingMode.DATE, SortingOrder.DESCENDING));
-                    if (i < 0) i = ~i;
-                    list.add(i, ma);
-                }
+            if (mediaList != null && mediaList.size() != 0) {
+                media.addAll(mediaList);
+                adapter.swapDataSet(media);
+                updatePageTitle(position);
+                mViewPager.setCurrentItem(position);
+                useImageMenu = isCurrentMediaImage();
             }
-            int i = Collections.binarySearch(
-                    list, m, MediaComparators.getComparator(SortingMode.DATE, SortingOrder.DESCENDING));
-            if (i < 0) i = ~i;
-
-            list.add(i, m);
-            media.clear();
-            media.addAll(list);
-            adapter.notifyDataSetChanged();
-            position = i;
-            mViewPager.setCurrentItem(position);
-
-            updatePageTitle(position);
         });
         mediaViewModel.getMediaLoadingState().observe(this, state -> {
             if (state.getMsg() != null) {
                 Toast.makeText(this, state.getMsg(), Toast.LENGTH_SHORT).show();
             }
         });
+        mediaViewModel.loadMedia(albumId, SortingMode.DATE, SortingOrder.DESCENDING);
     }
 
-//    private void loadUri(Uri uri) {
-//        album = new Album(uri.toString(), uri.getPath());
-//        album.settings = AlbumSettings.getDefaults();
+    private void loadUri(Uri uri) {
+//        File f = new File(uri.getPath());
+//        Media m = new Media(f.getPath(), StringUtils.getPhotoNameByPath(f.getPath()),
+//                -1, f.length(), MediaType.IMAGE, "", f.lastModified(), 0);
 //
 //        /*
 //        String path = StorageHelper.getMediaPath(getApplicationContext(), getIntent().getData());
@@ -264,10 +234,11 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
 //            findViewById(R.id.ll_emoji_easter_egg).setVisibility(showEasterEgg ? View.VISIBLE : View.GONE);
 //        }
 //
-//        media = new ArrayList<>(Collections.singletonList(new Media(uri)));
+//        media = new ArrayList<>(Collections.singletonList(m));
+//        adapter.swapDataSet(media);
 //        position = 0;
 //        customUri = true;
-//    }
+    }
 
     private void initUi() {
 
@@ -288,8 +259,6 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
 
         mViewPager.setAdapter(adapter);
         mViewPager.setCurrentItem(position);
-
-        useImageMenu = isCurrentMediaImage();
 
         mViewPager.setPageTransformer(true, AnimationUtils.getPageTransformer(new DepthPageTransformer()));
 
