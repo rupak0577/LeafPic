@@ -23,6 +23,8 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProviders;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 
 import android.view.MenuItem;
 import android.view.View;
@@ -48,6 +50,7 @@ import org.horaapps.leafpic.ui.base.interfaces.NothingToShowListener;
 import org.horaapps.leafpic.ui.media.RvMediaFragment;
 import org.horaapps.leafpic.ui.base.interfaces.MediaClickListener;
 import org.horaapps.leafpic.ui.timeline.TimelineFragment;
+import org.horaapps.leafpic.ui.viewer.ViewerFragment;
 import org.horaapps.leafpic.util.AlertDialogsHelper;
 import org.horaapps.leafpic.util.DeviceUtils;
 import org.horaapps.leafpic.util.LegacyCompatFileProvider;
@@ -84,28 +87,14 @@ public class MainActivity extends SharedMediaActivity implements
 
     public static final String ARGS_PICK_MODE = "pick_mode";
 
-    private static final String SAVE_FRAGMENT_MODE = "fragment_mode";
-
-    public @interface FragmentMode {
-        int MODE_ALBUMS = 1001;
-        int MODE_MEDIA = 1002;
-        int MODE_TIMELINE = 1003;
-    }
-
     @BindView(R.id.fab_camera) FloatingActionButton fab;
     @BindView(R.id.drawer_layout) DrawerLayout navigationDrawer;
     @BindView(R.id.home_navigation_drawer) NavigationDrawer navigationDrawerView;
     @BindView(R.id.toolbar) Toolbar toolbar;
     @BindView(R.id.coordinator_main_layout) CoordinatorLayout mainLayout;
 
-    private AlbumsFragment albumsFragment;
-    private RvMediaFragment rvMediaFragment;
-    private TimelineFragment timelineFragment;
-
     private boolean pickMode = false;
     private Unbinder unbinder;
-
-    @FragmentMode private int fragmentMode;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -116,95 +105,29 @@ public class MainActivity extends SharedMediaActivity implements
         initUi();
         pickMode = getIntent().getBooleanExtra(ARGS_PICK_MODE, false);
 
-        if (savedInstanceState == null) {
-            fragmentMode = FragmentMode.MODE_ALBUMS;
-            initAlbumsFragment();
-            setContentFragment();
-
-            return;
-        }
-
-        /* We have some instance state */
-        restoreState(savedInstanceState);
-
-        switch (fragmentMode) {
-
-            case FragmentMode.MODE_MEDIA:
-                rvMediaFragment = (RvMediaFragment) getSupportFragmentManager().findFragmentByTag(RvMediaFragment.TAG);
-                rvMediaFragment.setListener(this);
-                break;
-
-            case FragmentMode.MODE_ALBUMS:
-                albumsFragment = (AlbumsFragment) getSupportFragmentManager().findFragmentByTag(AlbumsFragment.TAG);
-                break;
-
-            case FragmentMode.MODE_TIMELINE:
-                setupUiForTimeline();
-        }
-    }
-
-    private void setContentFragment() {
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.content, albumsFragment, AlbumsFragment.TAG)
-                .addToBackStack(null)
-                .commit();
-    }
-
-    private void initAlbumsFragment() {
-        unreferenceFragments();
-        albumsFragment = new AlbumsFragment();
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        outState.putInt(SAVE_FRAGMENT_MODE, fragmentMode);
-        super.onSaveInstanceState(outState);
-    }
-
-    private void restoreState(@NonNull Bundle savedInstance) {
-        fragmentMode = savedInstance.getInt(SAVE_FRAGMENT_MODE, FragmentMode.MODE_ALBUMS);
+        unlockNavigationDrawer();
     }
 
     private void displayAlbums(boolean hidden) {
-        fragmentMode = FragmentMode.MODE_ALBUMS;
         unlockNavigationDrawer();
-        if (albumsFragment == null) initAlbumsFragment();
-        albumsFragment.displayAlbums(hidden);
-        setContentFragment();
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
+        navController.navigate(R.id.albumsFragment);
     }
 
     public void displayMedia(Album album) {
-        unreferenceFragments();
         SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
         sharedVM.setAlbum(album);
-        rvMediaFragment = RvMediaFragment.make(album);
-
-        fragmentMode = FragmentMode.MODE_MEDIA;
         lockNavigationDrawer();
 
-        rvMediaFragment.setListener(this);
-
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.content, rvMediaFragment, RvMediaFragment.TAG)
-                .addToBackStack(null)
-                .commit();
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
+        navController.navigate(R.id.action_albumsFragment_to_rvMediaFragment);
     }
 
     public void displayTimeline(Album album) {
-        unreferenceFragments();
         SharedVM sharedVM = ViewModelProviders.of(this).get(SharedVM.class);
         sharedVM.setAlbum(album);
-        timelineFragment = TimelineFragment.Companion.newInstance(album);
-
-        fragmentMode = FragmentMode.MODE_TIMELINE;
-
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.content, timelineFragment, TimelineFragment.TAG)
-                .addToBackStack(null)
-                .commit();
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
+        navController.navigate(R.id.action_albumsFragment_to_timelineFragment);
 
         setupUiForTimeline();
     }
@@ -219,20 +142,11 @@ public class MainActivity extends SharedMediaActivity implements
     public void onMediaClick(long albumId, File file, int position) {
 
         if (!pickMode) {
-            Intent intent = new Intent(getApplicationContext(), SingleMediaActivity.class);
-            try {
-                intent.putExtra(SingleMediaActivity.EXTRA_ARGS_ALBUM_ID, albumId);
-                intent.setAction(SingleMediaActivity.ACTION_OPEN_ALBUM);
-                intent.putExtra(SingleMediaActivity.EXTRA_ARGS_POSITION, position);
-                startActivity(intent);
-            } catch (Exception e) { // Putting too much data into the Bundle
-                // TODO: Find a better way to pass data between the activities - possibly a key to
-                // access a HashMap or a unique value of a singleton Data Repository of some sort.
-                intent.setAction(SingleMediaActivity.ACTION_OPEN_ALBUM_LAZY);
-                //intent.putExtra(SingleMediaActivity.EXTRA_ARGS_MEDIA, media.get(position));
-                startActivity(intent);
-            }
-
+            Bundle bundle = new Bundle();
+            bundle.putLong(ViewerFragment.EXTRA_ARGS_ALBUM_ID, albumId);
+            bundle.putInt(ViewerFragment.EXTRA_ARGS_POSITION, position);
+            NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
+            navController.navigate(R.id.action_rvMediaFragment_to_viewerFragment, bundle);
         } else {
 
             Uri uri = LegacyCompatFileProvider.getUri(getApplicationContext(), file);
@@ -251,11 +165,12 @@ public class MainActivity extends SharedMediaActivity implements
 
     @Override
     public void changedEditMode(boolean editMode, int selected, int total, @Nullable View.OnClickListener listener, @Nullable String title) {
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         if (editMode) {
             updateToolbar(
                     getString(R.string.toolbar_selection_count, selected, total),
                     GoogleMaterial.Icon.gmd_check, listener);
-        } else if (inAlbumMode()) {
+        } else if (navController.getCurrentDestination().getId() == R.id.albumsFragment) {
             showDefaultToolbar();
         } else {
             updateToolbar(title, GoogleMaterial.Icon.gmd_arrow_back, v -> goBackToAlbums());
@@ -278,22 +193,11 @@ public class MainActivity extends SharedMediaActivity implements
     }
 
     public void goBackToAlbums() {
-        unreferenceFragments();
-        fragmentMode = FragmentMode.MODE_ALBUMS;
         unlockNavigationDrawer();
-        getSupportFragmentManager().popBackStack();
-        albumsFragment = (AlbumsFragment) getSupportFragmentManager().findFragmentByTag(AlbumsFragment.TAG);
         selectNavigationItem(NAVIGATION_ITEM_ALL_ALBUMS);
         showDefaultToolbar();
-    }
-
-    private void unreferenceFragments() {
-        // TODO Calvin: This is a hack for the current back button behavior.
-        // Refactor the logic to avoid these member variables.
-        // Allow the GC to reclaim the fragments for now
-        timelineFragment = null;
-        rvMediaFragment = null;
-        albumsFragment = null;
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
+        navController.navigateUp();
     }
 
     private void initUi() {
@@ -542,18 +446,8 @@ public class MainActivity extends SharedMediaActivity implements
 
     @Override
     public void onBackPressed() {
-        if (inAlbumMode()) {
-            if (!albumsFragment.onBackPressed()) {
-                if (navigationDrawer.isDrawerOpen(GravityCompat.START)) closeDrawer();
-                else finish();
-            }
-
-        } else if (inTimelineMode() && !timelineFragment.onBackPressed()) {
-            goBackToAlbums();
-
-        } else if (inMediaMode() && !rvMediaFragment.onBackPressed()) {
-            goBackToAlbums();
-        }
+        if (navigationDrawer.isDrawerOpen(GravityCompat.START)) closeDrawer();
+        else super.onBackPressed();
     }
 
     @Override
@@ -613,18 +507,6 @@ public class MainActivity extends SharedMediaActivity implements
 
     private void selectNavigationItem(@NavigationItem int navItem) {
         navigationDrawerView.selectNavItem(navItem);
-    }
-
-    private boolean inAlbumMode() {
-        return fragmentMode == FragmentMode.MODE_ALBUMS;
-    }
-
-    private boolean inMediaMode() {
-        return fragmentMode == FragmentMode.MODE_MEDIA;
-    }
-
-    private boolean inTimelineMode() {
-        return fragmentMode == FragmentMode.MODE_TIMELINE;
     }
 
     private void lockNavigationDrawer() {

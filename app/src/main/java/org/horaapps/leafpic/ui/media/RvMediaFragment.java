@@ -31,6 +31,8 @@ import androidx.appcompat.widget.SwitchCompat;
 import androidx.cardview.widget.CardView;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
+import androidx.navigation.NavController;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -50,8 +52,8 @@ import org.horaapps.leafpic.data.sort.SortingMode;
 import org.horaapps.leafpic.data.sort.SortingOrder;
 import org.horaapps.leafpic.di.Injector;
 import org.horaapps.leafpic.ui.base.BaseMediaGridFragment;
-import org.horaapps.leafpic.ui.base.interfaces.MediaClickListener;
 import org.horaapps.leafpic.progress.ProgressBottomSheet;
+import org.horaapps.leafpic.ui.viewer.ViewerFragment;
 import org.horaapps.leafpic.util.Affix;
 import org.horaapps.leafpic.util.AlertDialogsHelper;
 import org.horaapps.leafpic.util.AnimationUtils;
@@ -124,11 +126,6 @@ public class RvMediaFragment extends BaseMediaGridFragment {
         album = sharedVM.getAlbum();
     }
 
-    public static RvMediaFragment make(Album album) {
-        RvMediaFragment fragment = new RvMediaFragment();
-        return fragment;
-    }
-
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -160,12 +157,6 @@ public class RvMediaFragment extends BaseMediaGridFragment {
         outState.putBoolean(ARG_IS_SELECTING, adapter.isSelecting);
         outState.putParcelable(ARG_SELECTED, adapter.selectedItems);
         super.onSaveInstanceState(outState);
-    }
-
-    private MediaClickListener listener;
-
-    public void setListener(MediaClickListener listener) {
-        this.listener = listener;
     }
 
     @Nullable
@@ -665,8 +656,11 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
     @Override
     public void onItemSelected(int position) {
-        if (listener != null) listener.onMediaClick(adapter.getMedia(position).getAlbumId(),
-                adapter.getMedia(position).getFile(), position);
+        Bundle bundle = new Bundle();
+        bundle.putLong(ViewerFragment.EXTRA_ARGS_ALBUM_ID, adapter.getMedia(position).getAlbumId());
+        bundle.putInt(ViewerFragment.EXTRA_ARGS_POSITION, position);
+        NavController navController = NavHostFragment.findNavController(this);
+        navController.navigate(R.id.action_rvMediaFragment_to_viewerFragment, bundle);
     }
 
     @Override

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph.xml"
+    app:startDestination="@id/albumsFragment">
+
+    <fragment
+        android:id="@+id/rvMediaFragment"
+        android:name="org.horaapps.leafpic.ui.media.RvMediaFragment"
+        android:label="fragment_rv_media"
+        tools:layout="@layout/fragment_rv_media" >
+        <action
+            android:id="@+id/action_rvMediaFragment_to_viewerFragment"
+            app:destination="@id/viewerFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/albumsFragment"
+        android:name="org.horaapps.leafpic.ui.albums.AlbumsFragment"
+        android:label="fragment_albums"
+        tools:layout="@layout/fragment_albums" >
+        <action
+            android:id="@+id/action_albumsFragment_to_rvMediaFragment"
+            app:destination="@id/rvMediaFragment" />
+        <action
+            android:id="@+id/action_albumsFragment_to_timelineFragment"
+            app:destination="@id/timelineFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/viewerFragment"
+        android:name="org.horaapps.leafpic.ui.viewer.ViewerFragment"
+        android:label="ViewerFragment" />
+    <fragment
+        android:id="@+id/timelineFragment"
+        android:name="org.horaapps.leafpic.ui.timeline.TimelineFragment"
+        android:label="TimelineFragment" />
+</navigation>
