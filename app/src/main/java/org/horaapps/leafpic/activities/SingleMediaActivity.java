@@ -203,7 +203,7 @@ public class SingleMediaActivity extends SharedMediaActivity implements BaseMedi
                 Toast.makeText(this, state.getMsg(), Toast.LENGTH_SHORT).show();
             }
         });
-        mediaViewModel.loadMedia(albumId, SortingMode.DATE, SortingOrder.DESCENDING);
+        mediaViewModel.loadMedia(albumId, SortingMode.DATE, SortingOrder.DESCENDING, null);
     }
 
     private void loadUri(Uri uri) {

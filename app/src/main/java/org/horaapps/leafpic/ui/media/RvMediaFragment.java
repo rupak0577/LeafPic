@@ -105,6 +105,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
 
     private SortingMode sortingMode;
     private SortingOrder sortingOrder;
+    private MediaType mediaFilter;
 
     private Album album;
 
@@ -147,7 +148,7 @@ public class RvMediaFragment extends BaseMediaGridFragment {
     private void loadAlbum(Album album) {
         this.album = album;
         mediaViewModel.refreshMedia(album);
-        mediaViewModel.loadMedia(album.getId(), sortingMode(), sortingOrder());
+        mediaViewModel.loadMedia(album.getId(), sortingMode(), sortingOrder(), mediaFilter);
     }
 
     @Override
@@ -316,24 +317,28 @@ public class RvMediaFragment extends BaseMediaGridFragment {
         switch (item.getItemId()) {
 
             case R.id.all_media_filter:
+                mediaFilter = null;
                 mediaViewModel.setMediaFilter(null);
                 item.setChecked(true);
                 reload();
                 return true;
 
             case R.id.video_media_filter:
+                mediaFilter = MediaType.VIDEO;
                 mediaViewModel.setMediaFilter(MediaType.VIDEO);
                 item.setChecked(true);
                 reload();
                 return true;
 
             case R.id.image_media_filter:
+                mediaFilter = MediaType.IMAGE;
                 mediaViewModel.setMediaFilter(MediaType.IMAGE);
                 item.setChecked(true);
                 reload();
                 return true;
 
             case R.id.gifs_media_filter:
+                mediaFilter = MediaType.GIF;
                 mediaViewModel.setMediaFilter(MediaType.GIF);
                 item.setChecked(true);
                 reload();
@@ -659,6 +664,10 @@ public class RvMediaFragment extends BaseMediaGridFragment {
         Bundle bundle = new Bundle();
         bundle.putLong(ViewerFragment.EXTRA_ARGS_ALBUM_ID, adapter.getMedia(position).getAlbumId());
         bundle.putInt(ViewerFragment.EXTRA_ARGS_POSITION, position);
+        bundle.putSerializable(ViewerFragment.EXTRA_ARGS_FILTER, mediaFilter);
+        bundle.putInt(ViewerFragment.EXTRA_ARGS_SORT_MODE, sortingMode.getValue());
+        bundle.putInt(ViewerFragment.EXTRA_ARGS_SORT_ORDER, sortingOrder.getValue());
+
         NavController navController = NavHostFragment.findNavController(this);
         navController.navigate(R.id.action_rvMediaFragment_to_viewerFragment, bundle);
     }

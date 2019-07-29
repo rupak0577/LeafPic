@@ -19,6 +19,7 @@ import org.horaapps.leafpic.R
 import org.horaapps.leafpic.adapters.MediaPagerAdapter
 import org.horaapps.leafpic.animations.DepthPageTransformer
 import org.horaapps.leafpic.data.Media
+import org.horaapps.leafpic.data.MediaType
 import org.horaapps.leafpic.data.sort.SortingMode
 import org.horaapps.leafpic.data.sort.SortingOrder
 import org.horaapps.leafpic.di.Injector
@@ -47,6 +48,9 @@ class ViewerFragment : Fragment() {
     companion object {
         const val EXTRA_ARGS_POSITION = "args_position"
         const val EXTRA_ARGS_ALBUM_ID = "args_album_id"
+        const val EXTRA_ARGS_FILTER = "args_album_filter"
+        const val EXTRA_ARGS_SORT_MODE = "args_album_sort_mode"
+        const val EXTRA_ARGS_SORT_ORDER = "args_album_sort_order"
     }
 
     override fun onAttach(context: Context) {
@@ -74,11 +78,10 @@ class ViewerFragment : Fragment() {
 
         mediaViewModel = ViewModelProviders.of(this, viewModelFactory).get(MediaViewModel::class.java)
 
-        val position = arguments!!.getInt(EXTRA_ARGS_POSITION, 0)
         mediaViewModel.media.observe(viewLifecycleOwner, Observer<List<Media>> { mediaList ->
             if (mediaList != null && mediaList.isNotEmpty()) {
                 adapter.swapDataSet(ArrayList(mediaList))
-                mViewPager.currentItem = position
+                mViewPager.currentItem = arguments!!.getInt(EXTRA_ARGS_POSITION, 0)
             }
         })
         mediaViewModel.mediaLoadingState.observe(this, Observer { state ->
@@ -88,7 +91,10 @@ class ViewerFragment : Fragment() {
         })
 
         val albumId = arguments!!.getLong(EXTRA_ARGS_ALBUM_ID)
-        mediaViewModel.loadMedia(albumId, SortingMode.DATE, SortingOrder.DESCENDING)
+        val mediaFilter = arguments!!.getSerializable(EXTRA_ARGS_FILTER) as MediaType?
+        val sortMode = SortingMode.fromValue(arguments!!.getInt(EXTRA_ARGS_SORT_MODE))
+        val sortOrder = SortingOrder.fromValue(arguments!!.getInt(EXTRA_ARGS_SORT_ORDER))
+        mediaViewModel.loadMedia(albumId, sortMode, sortOrder, mediaFilter)
     }
 
     override fun onDestroyView() {

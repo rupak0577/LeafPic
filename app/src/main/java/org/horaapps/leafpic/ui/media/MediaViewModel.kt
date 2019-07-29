@@ -29,9 +29,11 @@ class MediaViewModel @Inject constructor(private val application: App,
         it.loadingState
     }
 
-    fun loadMedia(albumId: Long, sortingMode: SortingMode, sortingOrder: SortingOrder) {
+    fun loadMedia(albumId: Long, sortingMode: SortingMode, sortingOrder: SortingOrder,
+                  mediaFilter: MediaType?) {
         _sortingMode = sortingMode
         _sortingOrder = sortingOrder
+        _mediaFilter = mediaFilter
 
         if (_albumId.value != albumId) {
             _albumId.value = albumId

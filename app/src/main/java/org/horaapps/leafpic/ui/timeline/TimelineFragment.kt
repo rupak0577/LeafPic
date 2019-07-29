@@ -276,7 +276,7 @@ class TimelineFragment : BaseMediaGridFragment(), ActionsListener {
 
     private fun loadAlbum() {
         mediaViewModel.refreshMedia(contentAlbum)
-        mediaViewModel.loadMedia(contentAlbum.id, SortingMode.DATE, SortingOrder.DESCENDING)
+        mediaViewModel.loadMedia(contentAlbum.id, SortingMode.DATE, SortingOrder.DESCENDING, null)
     }
 
     private fun setAdapterMedia(mediaList: ArrayList<Media>) {
